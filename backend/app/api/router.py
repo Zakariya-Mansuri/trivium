@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import agent, auth, learn, metrics, profile, projects, reviews, sessions
+from app.api.routes import agent, auth, learn, metrics, profile, projects, reviews, sessions, skills
 
 api_router = APIRouter()
 api_router.include_router(auth.router)
@@ -11,3 +11,4 @@ api_router.include_router(learn.router)
 api_router.include_router(reviews.router)
 api_router.include_router(profile.router)
 api_router.include_router(metrics.router)
+api_router.include_router(skills.router)

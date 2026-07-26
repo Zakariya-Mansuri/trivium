@@ -4,6 +4,20 @@ import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../compone
 import { api } from '../lib/api'
 import type { Project, Session } from '../lib/types'
 
+function groupByRecency(sessions: Session[]): [string, Session[]][] {
+  const now = new Date()
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const buckets: Record<string, Session[]> = { Today: [], Yesterday: [], 'This week': [], Earlier: [] }
+  for (const s of sessions) {
+    const t = new Date(s.started_at).getTime()
+    if (t >= startOfDay) buckets.Today.push(s)
+    else if (t >= startOfDay - 86_400_000) buckets.Yesterday.push(s)
+    else if (t >= startOfDay - 6 * 86_400_000) buckets['This week'].push(s)
+    else buckets.Earlier.push(s)
+  }
+  return Object.entries(buckets).filter(([, group]) => group.length > 0)
+}
+
 export default function Sessions() {
   const [params] = useSearchParams()
   const projectFilter = params.get('project')
@@ -36,6 +50,15 @@ export default function Sessions() {
         }
       />
 
+      {sessions && sessions.length > 0 && (
+        <p className="text-xs text-ink-300 -mt-2 mb-4">
+          Sessions are learning material, not chat history — to continue a conversation, use the{' '}
+          <Link to="/app/agent" className="text-primary-300 hover:text-primary-400">
+            Agent
+          </Link>
+          's recent-chats panel.
+        </p>
+      )}
       {!sessions ? (
         <Spinner />
       ) : sessions.length === 0 ? (
@@ -54,26 +77,36 @@ export default function Sessions() {
           }
         />
       ) : (
-        <div className="space-y-3">
-          {sessions.map((s) => (
-            <Link key={s.id} to={`/app/sessions/${s.id}`} className="block">
-              <Card className="hover:border-primary-600/60 transition-colors !py-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-ink-100 font-medium truncate">{s.title ?? `${s.source_tool} session`}</p>
-                    <p className="text-xs text-ink-300 mt-1">
-                      {new Date(s.started_at).toLocaleString()}
-                      {projectName(s.project_id) ? ` · ${projectName(s.project_id)}` : ''}
-                      {` · via ${s.source_tool.replace(/_/g, ' ')}`}
-                    </p>
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <Badge label={s.source_fidelity} />
-                    <Badge label={s.extraction_status} />
-                  </div>
-                </div>
-              </Card>
-            </Link>
+        <div className="space-y-6">
+          {groupByRecency(sessions).map(([label, group]) => (
+            <section key={label}>
+              <h2 className="text-xs uppercase tracking-widest text-ink-300 mb-2">{label}</h2>
+              <div className="space-y-3">
+                {group.map((s) => (
+                  <Link key={s.id} to={`/app/sessions/${s.id}`} className="block">
+                    <Card className="hover:border-primary-600/60 transition-colors !py-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-ink-100 font-medium truncate">{s.title ?? `${s.source_tool} session`}</p>
+                          <p className="text-xs text-ink-300 mt-1">
+                            {new Date(s.started_at).toLocaleString()}
+                            {projectName(s.project_id) ? ` · ${projectName(s.project_id)}` : ''}
+                            {` · via ${s.source_tool.replace(/_/g, ' ')}`}
+                          </p>
+                        </div>
+                        <div className="flex gap-2 shrink-0 items-center">
+                          <Badge label={s.source_fidelity} />
+                          <Badge label={s.extraction_status} />
+                          <span className="text-accent-400 text-xs" title="Generate learning artifacts">
+                            ✦
+                          </span>
+                        </div>
+                      </div>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}

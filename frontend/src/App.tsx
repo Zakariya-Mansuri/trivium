@@ -15,6 +15,7 @@ import Review from './pages/Review'
 import SessionDetail from './pages/SessionDetail'
 import Sessions from './pages/Sessions'
 import Settings from './pages/Settings'
+import Skills from './pages/Skills'
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="learn" element={<Learn />} />
         <Route path="review" element={<Review />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="skills" element={<Skills />} />
         <Route path="metrics" element={<Metrics />} />
         <Route path="settings" element={<Settings />} />
       </Route>

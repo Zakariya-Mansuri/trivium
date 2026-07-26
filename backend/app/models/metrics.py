@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, Index, Numeric, String, JSON
+from sqlalchemy import ForeignKey, Index, Integer, Numeric, String, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, GUID, UTCDateTime, new_uuid, utcnow
@@ -16,6 +16,21 @@ class KnowledgeProfileEntry(Base):
     last_computed_at: Mapped[object] = mapped_column(UTCDateTime, nullable=False, default=utcnow, onupdate=utcnow)
 
     __table_args__ = (Index("idx_profile_entries_user", "user_id"),)
+
+
+class SkillReport(Base):
+    """Cached language/prompting skill analysis, recomputed on demand."""
+
+    __tablename__ = "skill_reports"
+
+    id: Mapped[str] = mapped_column(GUID, primary_key=True, default=new_uuid)
+    user_id: Mapped[str] = mapped_column(GUID, ForeignKey("users.id"), nullable=False)
+    report_type: Mapped[str] = mapped_column(String(20), nullable=False)  # 'language' | 'prompting'
+    content: Mapped[dict] = mapped_column(JSON, nullable=False)
+    message_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    computed_at: Mapped[object] = mapped_column(UTCDateTime, nullable=False, default=utcnow, onupdate=utcnow)
+
+    __table_args__ = (Index("idx_skill_reports_user_type", "user_id", "report_type"),)
 
 
 class MetricsEvent(Base):

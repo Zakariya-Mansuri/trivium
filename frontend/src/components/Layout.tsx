@@ -9,6 +9,7 @@ const nav = [
   { to: '/app/learn', label: 'Learn', icon: '✦' },
   { to: '/app/review', label: 'Review', icon: '↻' },
   { to: '/app/profile', label: 'Profile', icon: '⬡' },
+  { to: '/app/skills', label: 'Improve', icon: '↑' },
   { to: '/app/metrics', label: 'Metrics', icon: '∿' },
 ]
 

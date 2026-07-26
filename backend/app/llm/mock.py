@@ -75,7 +75,65 @@ class MockProvider(LLMProvider):
             return self._extract(user_text)
         if "[TASK:artifact]" in system:
             return self._artifact(user_text)
+        if "[TASK:skills_language]" in system:
+            return self._skills(user_text, "language")
+        if "[TASK:skills_prompting]" in system:
+            return self._skills(user_text, "prompting")
         return self._chat(messages)
+
+    # --- skill reports (deterministic scoring from the provided metrics) ---
+
+    def _skills(self, payload_text: str, kind: str) -> str:
+        try:
+            metrics = json.loads(payload_text).get("metrics", {})
+        except json.JSONDecodeError:
+            metrics = {}
+
+        def clamp(v: float) -> int:
+            return int(max(5, min(98, v)))
+
+        if kind == "language":
+            sub = {
+                "clarity": clamp(85 - metrics.get("overlong_sentence_rate", 0) * 100),
+                "grammar": clamp(90 - metrics.get("starts_lowercase_rate", 0) * 60 - metrics.get("informal_token_rate", 0) * 60),
+                "vocabulary": clamp(40 + metrics.get("vocabulary_richness", 0.4) * 100),
+                "structure": clamp(60 + min(metrics.get("avg_words_per_message", 10), 40)),
+                "tone": clamp(88 - metrics.get("informal_token_rate", 0) * 80),
+            }
+            weaknesses = []
+            if metrics.get("starts_lowercase_rate", 0) > 0.4:
+                weaknesses.append({"area": "grammar", "evidence": "many messages start lowercase", "tip": "Capitalize sentence starts — it carries into docs and commits."})
+            if metrics.get("overlong_sentence_rate", 0) > 0.2:
+                weaknesses.append({"area": "clarity", "evidence": "long run-on sentences", "tip": "Split sentences over ~25 words; one idea per sentence."})
+            if not weaknesses:
+                weaknesses.append({"area": "conciseness", "evidence": "some repeated phrasing", "tip": "Trim filler words; lead with the point."})
+        else:
+            sub = {
+                "context": clamp(30 + metrics.get("context_rate", 0) * 65),
+                "specificity": clamp(30 + metrics.get("goal_verb_rate", 0) * 65),
+                "constraints": clamp(25 + metrics.get("constraint_rate", 0) * 70),
+                "output_format": clamp(25 + metrics.get("output_format_rate", 0) * 70),
+                "iteration": clamp(40 + (metrics.get("sessions_with_followups", 0) / max(metrics.get("sessions_total", 1), 1)) * 55),
+            }
+            weaknesses = []
+            if metrics.get("constraint_rate", 0) < 0.3:
+                weaknesses.append({"area": "constraints", "evidence": "prompts rarely state limits", "tip": "Say what the answer must and must not do (stack, style, scope)."})
+            if metrics.get("output_format_rate", 0) < 0.3:
+                weaknesses.append({"area": "output_format", "evidence": "expected output rarely described", "tip": "Ask for the shape you want: 'return a diff', 'give 3 options with tradeoffs'."})
+            if not weaknesses:
+                weaknesses.append({"area": "context", "evidence": "occasional missing error text", "tip": "Paste the exact error and the relevant code, not a paraphrase."})
+
+        overall = int(sum(sub.values()) / len(sub))
+        return json.dumps(
+            {
+                "overall_score": overall,
+                "summary": f"Based on {metrics.get('messages_analyzed', 0)} of your messages, your {kind} skills score {overall}/100. "
+                "(Offline analysis — configure a real LLM provider for deeper feedback.)",
+                "sub_scores": sub,
+                "strengths": ["Consistent engagement with concrete coding problems"],
+                "weaknesses": weaknesses,
+            }
+        )
 
     # --- agent chat ---
 

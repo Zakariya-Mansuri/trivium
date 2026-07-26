@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import Markdown from '../components/Markdown'
 import { Button, Card, ErrorNote, PageHeader, TextArea } from '../components/ui'
 import { api } from '../lib/api'
-import type { AgentChatResponse, Message, Project } from '../lib/types'
+import type { AgentChatResponse, Message, Project, Session } from '../lib/types'
 
 export default function AgentChat() {
   const [params, setParams] = useSearchParams()
@@ -12,6 +12,7 @@ export default function AgentChat() {
   const [projects, setProjects] = useState<Project[]>([])
   const [projectId, setProjectId] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
+  const [recent, setRecent] = useState<Session[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -20,6 +21,12 @@ export default function AgentChat() {
   useEffect(() => {
     api<Project[]>('/projects').then(setProjects)
   }, [])
+
+  const loadRecent = () =>
+    api<Session[]>('/sessions').then((all) => setRecent(all.filter((s) => s.source_tool === 'native').slice(0, 15)))
+  useEffect(() => {
+    loadRecent()
+  }, [sessionId])
 
   useEffect(() => {
     if (sessionId) {
@@ -113,28 +120,52 @@ export default function AgentChat() {
         }
       />
 
-      <Card className="flex-1 overflow-y-auto space-y-4 mb-4">
-        {messages.length === 0 && (
-          <p className="text-sm text-ink-300 text-center py-16">
-            Ask a coding question — architecture, debugging, tradeoffs. Everything becomes learnable material.
-          </p>
-        )}
-        {messages.map((m, i) => (
-          <div key={`${m.id}-${i}`} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div
-              className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
-                m.role === 'user'
-                  ? 'bg-primary-600/20 border border-primary-600/40 text-ink-100 whitespace-pre-wrap'
-                  : 'bg-ink-800 border border-ink-600 text-ink-100'
+      <div className="flex-1 flex gap-4 min-h-0 mb-4">
+        <aside className="hidden lg:flex w-52 shrink-0 flex-col card overflow-y-auto">
+          <p className="text-[10px] uppercase tracking-widest text-ink-300 px-3 pt-3 pb-2">Recent chats</p>
+          {recent.length === 0 && <p className="text-xs text-ink-300 px-3">No agent chats yet.</p>}
+          {recent.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setParams({ session: s.id })}
+              className={`text-left px-3 py-2 border-l-2 transition-colors ${
+                s.id === sessionId
+                  ? 'border-primary-500 bg-primary-600/10 text-ink-100'
+                  : 'border-transparent text-ink-200 hover:bg-ink-800'
               }`}
             >
-              {m.role === 'user' ? m.content : <Markdown>{m.content}</Markdown>}
+              <span className="block text-xs truncate">{s.title ?? 'Untitled chat'}</span>
+              <span className="block text-[10px] text-ink-300 mt-0.5">
+                {new Date(s.started_at).toLocaleDateString()}
+                {s.ended_at ? ' · ended' : ''}
+              </span>
+            </button>
+          ))}
+        </aside>
+
+        <Card className="flex-1 overflow-y-auto space-y-4 min-w-0">
+          {messages.length === 0 && (
+            <p className="text-sm text-ink-300 text-center py-16">
+              Ask a coding question — architecture, debugging, tradeoffs. Everything becomes learnable material.
+            </p>
+          )}
+          {messages.map((m, i) => (
+            <div key={`${m.id}-${i}`} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
+                  m.role === 'user'
+                    ? 'bg-primary-600/20 border border-primary-600/40 text-ink-100 whitespace-pre-wrap'
+                    : 'bg-ink-800 border border-ink-600 text-ink-100'
+                }`}
+              >
+                {m.role === 'user' ? m.content : <Markdown>{m.content}</Markdown>}
+              </div>
             </div>
-          </div>
-        ))}
-        {busy && <p className="text-xs text-ink-300 animate-pulse">Agent is thinking…</p>}
-        <div ref={bottomRef} />
-      </Card>
+          ))}
+          {busy && <p className="text-xs text-ink-300 animate-pulse">Agent is thinking…</p>}
+          <div ref={bottomRef} />
+        </Card>
+      </div>
 
       <ErrorNote message={error} />
       <form onSubmit={send} className="flex gap-3 items-end mt-2">

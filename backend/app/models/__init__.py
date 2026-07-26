@@ -7,7 +7,7 @@ from app.models.learning import (
     ReviewState,
     ReviewHistory,
 )
-from app.models.metrics import KnowledgeProfileEntry, MetricsEvent, IndependenceMetric
+from app.models.metrics import KnowledgeProfileEntry, MetricsEvent, IndependenceMetric, SkillReport
 
 __all__ = [
     "User",
@@ -25,4 +25,5 @@ __all__ = [
     "KnowledgeProfileEntry",
     "MetricsEvent",
     "IndependenceMetric",
+    "SkillReport",
 ]
