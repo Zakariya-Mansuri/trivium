@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink-950: #0a0d14;
+  --color-ink-900: #0f1420;
+  --color-ink-800: #161d2e;
+  --color-ink-700: #1f2940;
+  --color-ink-600: #2b3852;
+  --color-ink-300: #8a97b1;
+  --color-ink-200: #b6c0d4;
+  --color-ink-100: #e3e8f2;
+  --color-primary-600: #4f5ed6;
+  --color-primary-500: #6172f3;
+  --color-primary-400: #8098f9;
+  --color-primary-300: #a4bcfd;
+  --color-accent-500: #e9a23b;
+  --color-accent-400: #f2b95c;
+  --color-good-500: #3fbf7f;
+  --color-warn-500: #e0b040;
+  --color-bad-500: #e05d5d;
+  --font-display: "Sora", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+
+html {
+  background-color: var(--color-ink-950);
+  color: var(--color-ink-100);
+  font-family: var(--font-body);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+::selection {
+  background: var(--color-primary-600);
+  color: white;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Scrollbar to match theme */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-600) transparent;
+}
+
+.card {
+  @apply bg-ink-900 border border-ink-700 rounded-xl;
+}
+
+.mermaid-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.35s ease both; }

@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Databases
+*.db
+*.sqlite3
+
+# Env
+.env
+.env.local
+
+# Node
+node_modules/
+dist/
+*.local
+
+# E2E artifacts
+frontend/e2e/e2e-state.json
+frontend/e2e/shots/
+frontend/e2e/*.png
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local Claude Code settings
+.claude/
