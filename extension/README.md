@@ -7,11 +7,26 @@ server tagged with honest `wrapped` fidelity.
 
 **Purely programmatic** — no LLM involved in extraction.
 
-## Install (developer mode)
+## Install (public, zero-cost distribution)
 
-1. Open Chrome/Edge/Brave → `chrome://extensions`
-2. Enable **Developer mode** (top-right)
-3. Click **Load unpacked** → select this `extension/` folder
+1. Download the latest `trivium-companion-vX.Y.Z.zip` from the
+   [GitHub Releases page](https://github.com/Zakariya-Mansuri/trivium/releases) and unzip it
+2. Open Chrome/Edge/Brave → `chrome://extensions`
+3. Enable **Developer mode** (top-right)
+4. Click **Load unpacked** → select the unzipped folder
+5. Click the ▲ icon, set your Trivium server URL, and log in
+
+## Install (from source, for development)
+
+Same as above, but pick this `extension/` folder directly at step 4.
+
+## Packaging a release
+
+```powershell
+powershell -File extension/package.ps1 -ApiUrl https://your-api.onrender.com
+```
+Creates `dist/trivium-companion-v<version>.zip` with the production server URL baked in
+as the default. Upload it as an asset on a new GitHub release.
 
 ## Use
 
