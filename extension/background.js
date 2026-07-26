@@ -5,7 +5,9 @@
  */
 import { detectChatPage, parseChatGPTConversation, parseClaudeConversation } from './lib/extractors.js'
 
-const DEFAULT_API = 'http://localhost:8000'
+// Production Trivium server — self-hosters/devs can point at their own
+// (e.g. http://localhost:8000) in the popup's server field.
+const DEFAULT_API = 'https://trivium-api.onrender.com'
 
 // --- Trivium API helpers ---
 

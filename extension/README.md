@@ -31,7 +31,8 @@ as the default. Upload it as an asset on a new GitHub release.
 ## Use
 
 1. Click the ▲ icon → log in with your Trivium account
-   (server defaults to `http://localhost:8000`; point it at your Render URL in production)
+   (server defaults to the production API, `https://trivium-api.onrender.com`;
+   self-hosters can point it at their own URL, e.g. `http://localhost:8000`)
 2. Open any conversation on `chatgpt.com/c/…` or `claude.ai/chat/…`
 3. Click the ▲ icon → pick a project (optional) → **Import this chat**
 4. Trivium extracts knowledge units in the background — open the app and hit **Learn**

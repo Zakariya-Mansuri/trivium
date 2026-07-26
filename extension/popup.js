@@ -43,7 +43,7 @@ async function refresh() {
   if (!status.loggedIn) {
     $('view-login').style.display = 'block'
     $('view-app').style.display = 'none'
-    $('apiUrl').value = status.apiUrl || 'http://localhost:8000'
+    $('apiUrl').value = status.apiUrl || 'https://trivium-api.onrender.com'
     return
   }
   $('view-login').style.display = 'none'
@@ -77,7 +77,7 @@ $('loginBtn').addEventListener('click', async () => {
   setStatus($('loginStatus'), 'ok', 'Logging in…')
   const resp = await send({
     type: 'login',
-    apiUrl: $('apiUrl').value.trim() || 'http://localhost:8000',
+    apiUrl: $('apiUrl').value.trim() || 'https://trivium-api.onrender.com',
     email: $('email').value.trim(),
     password: $('password').value,
   })
