@@ -68,8 +68,22 @@ class ReviewSubmission(BaseModel):
     unit_id: str
     artifact_id: str | None = None
     performance: Literal["correct", "partial", "incorrect"]
+    # The AI-suggested grade for the same attempt, if one was requested — stored
+    # alongside the user's (possibly overriding) grade as a calibration signal.
+    ai_performance: Literal["correct", "partial", "incorrect"] | None = None
     response_text: str | None = Field(default=None, max_length=20_000)
     early: bool = False  # explicit opt-in to review inside the consolidation window
+
+
+class GradeRequest(BaseModel):
+    unit_id: str
+    artifact_id: str
+    response_text: str = Field(max_length=20_000)
+
+
+class GradeVerdict(BaseModel):
+    performance: Literal["correct", "partial", "incorrect"] | None
+    justification: str
 
 
 class ReviewResultOut(BaseModel):

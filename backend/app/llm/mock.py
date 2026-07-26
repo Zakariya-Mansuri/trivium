@@ -79,7 +79,30 @@ class MockProvider(LLMProvider):
             return self._skills(user_text, "language")
         if "[TASK:skills_prompting]" in system:
             return self._skills(user_text, "prompting")
+        if "[TASK:grade_recall]" in system:
+            return self._grade(user_text)
         return self._chat(messages)
+
+    # --- recall grading (content-word overlap heuristic) ---
+
+    def _grade(self, payload_text: str) -> str:
+        try:
+            payload = json.loads(payload_text)
+        except json.JSONDecodeError:
+            payload = {}
+        stop = {"the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "is", "was", "it", "this", "that", "with", "from", "your", "my"}
+        ref_words = {w for w in re.findall(r"[a-z']+", (payload.get("reference") or "").lower()) if w not in stop and len(w) > 2}
+        attempt_words = {w for w in re.findall(r"[a-z']+", (payload.get("attempt") or "").lower()) if w not in stop and len(w) > 2}
+        if not ref_words:
+            return json.dumps({"performance": "partial", "justification": "No reference content to compare against."})
+        overlap = len(ref_words & attempt_words) / len(ref_words)
+        if overlap >= 0.35:
+            verdict, why = "correct", "The attempt covers the key points of the reference."
+        elif overlap >= 0.12:
+            verdict, why = "partial", "The attempt touches some of the reference but misses key points."
+        else:
+            verdict, why = "incorrect", "The attempt does not match the substance of the reference."
+        return json.dumps({"performance": verdict, "justification": f"{why} (offline overlap check: {overlap:.0%})"})
 
     # --- skill reports (deterministic scoring from the provided metrics) ---
 

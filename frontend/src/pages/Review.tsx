@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import ArtifactPlayer from '../components/ArtifactPlayer'
 import { Badge, Button, Card, EmptyState, ErrorNote, PageHeader, Spinner } from '../components/ui'
 import { api } from '../lib/api'
-import type { ReviewQueue, ReviewResult } from '../lib/types'
+import type { GradeVerdict, ReviewQueue, ReviewResult } from '../lib/types'
 
 export default function Review() {
   const [params, setParams] = useSearchParams()
@@ -29,7 +29,19 @@ export default function Review() {
 
   const item = queue.items[index]
 
-  const grade = async (performance: 'correct' | 'partial' | 'incorrect', responseText: string) => {
+  const requestGrade = async (responseText: string): Promise<GradeVerdict> => {
+    if (!item) throw new Error('No active review item')
+    return api<GradeVerdict>('/reviews/grade', {
+      method: 'POST',
+      body: { unit_id: item.unit.id, artifact_id: item.artifact.id, response_text: responseText },
+    })
+  }
+
+  const grade = async (
+    performance: 'correct' | 'partial' | 'incorrect',
+    responseText: string,
+    aiPerformance?: 'correct' | 'partial' | 'incorrect' | null,
+  ) => {
     if (!item) return
     setBusy(true)
     setError(null)
@@ -40,6 +52,7 @@ export default function Review() {
           unit_id: item.unit.id,
           artifact_id: item.artifact.id,
           performance,
+          ai_performance: aiPerformance ?? null,
           response_text: responseText,
           early: item.early,
         },
@@ -120,7 +133,14 @@ export default function Review() {
               </div>
               <Badge label={item.mastery_status} />
             </div>
-            <ArtifactPlayer key={item.unit.id} artifact={item.artifact} mode="review" onGrade={grade} grading={busy} />
+            <ArtifactPlayer
+              key={item.unit.id}
+              artifact={item.artifact}
+              mode="review"
+              onGrade={grade}
+              onRequestGrade={requestGrade}
+              grading={busy}
+            />
           </Card>
         )
       )}

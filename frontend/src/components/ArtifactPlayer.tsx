@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import type { Artifact } from '../lib/types'
+import { useEffect, useMemo, useState } from 'react'
+import type { Artifact, GradeVerdict } from '../lib/types'
 import Markdown from './Markdown'
 import Mermaid from './Mermaid'
 import { Badge, Button, TextArea } from './ui'
@@ -9,45 +9,133 @@ type Performance = 'correct' | 'partial' | 'incorrect'
 interface PlayerProps {
   artifact: Artifact
   mode: 'learn' | 'review'
-  onGrade?: (performance: Performance, responseText: string) => void
+  onGrade?: (performance: Performance, responseText: string, aiPerformance?: Performance | null) => void
+  /** Requests an AI verdict for a typed attempt (recall formats only). */
+  onRequestGrade?: (responseText: string) => Promise<GradeVerdict>
   grading?: boolean
+}
+
+const GRADE_LABELS: Record<Performance, string> = {
+  correct: 'Got it',
+  partial: 'Partially',
+  incorrect: "Didn't recall",
 }
 
 function GradeButtons({
   onGrade,
   grading,
   responseText,
+  aiPerformance,
+  suggested,
+  prompt,
 }: {
-  onGrade: (p: Performance, r: string) => void
+  onGrade: (p: Performance, r: string, ai?: Performance | null) => void
   grading?: boolean
   responseText: string
+  aiPerformance?: Performance | null
+  suggested?: Performance | null
+  prompt?: string
 }) {
+  const styles: Record<Performance, string> = {
+    correct: '!bg-good-500/15 !text-good-500 border border-good-500/40 !shadow-none hover:!bg-good-500/25',
+    partial: '!bg-warn-500/15 !text-warn-500 border border-warn-500/40 !shadow-none hover:!bg-warn-500/25',
+    incorrect: '!bg-bad-500/15 !text-bad-500 border border-bad-500/40 !shadow-none hover:!bg-bad-500/25',
+  }
   return (
     <div>
-      <p className="text-sm text-ink-300 mb-2">How was your recall — honestly?</p>
+      <p className="text-sm text-ink-300 mb-2">{prompt ?? 'How was your recall — honestly?'}</p>
       <div className="flex flex-wrap gap-2">
-        <Button
-          disabled={grading}
-          onClick={() => onGrade('correct', responseText)}
-          className="!bg-good-500/15 !text-good-500 border border-good-500/40 !shadow-none hover:!bg-good-500/25"
-        >
-          Got it
-        </Button>
-        <Button
-          disabled={grading}
-          onClick={() => onGrade('partial', responseText)}
-          className="!bg-warn-500/15 !text-warn-500 border border-warn-500/40 !shadow-none hover:!bg-warn-500/25"
-        >
-          Partially
-        </Button>
-        <Button
-          disabled={grading}
-          onClick={() => onGrade('incorrect', responseText)}
-          className="!bg-bad-500/15 !text-bad-500 border border-bad-500/40 !shadow-none hover:!bg-bad-500/25"
-        >
-          Didn't recall
-        </Button>
+        {(['correct', 'partial', 'incorrect'] as const).map((p) => (
+          <Button
+            key={p}
+            disabled={grading}
+            onClick={() => onGrade(p, responseText, aiPerformance)}
+            className={`${styles[p]} ${suggested === p ? 'ring-2 ring-primary-500/70' : ''}`}
+          >
+            {GRADE_LABELS[p]}
+            {suggested === p ? ' · AI suggests' : ''}
+          </Button>
+        ))}
       </div>
+    </div>
+  )
+}
+
+/** Fetches an AI verdict for the attempt, then renders grade buttons with the
+ * suggestion highlighted. Falls back to plain self-grading if grading fails. */
+function AIGradedButtons({
+  responseText,
+  onGrade,
+  onRequestGrade,
+  grading,
+}: {
+  responseText: string
+  onGrade: (p: Performance, r: string, ai?: Performance | null) => void
+  onRequestGrade?: (r: string) => Promise<GradeVerdict>
+  grading?: boolean
+}) {
+  const [verdict, setVerdict] = useState<GradeVerdict | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    if (!onRequestGrade) {
+      setFailed(true)
+      return
+    }
+    onRequestGrade(responseText)
+      .then((v) => {
+        if (!cancelled) setVerdict(v)
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true)
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  if (!verdict && !failed) {
+    return (
+      <p className="text-sm text-ink-300 flex items-center gap-2">
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-ink-600 border-t-primary-400" />
+        Grading your recall against your own material…
+      </p>
+    )
+  }
+  if (failed || !verdict?.performance) {
+    return (
+      <GradeButtons
+        onGrade={onGrade}
+        grading={grading}
+        responseText={responseText}
+        prompt={verdict?.justification ?? 'AI grading unavailable — grade yourself honestly.'}
+      />
+    )
+  }
+  return (
+    <div className="space-y-3">
+      <div
+        className={`rounded-lg border p-3 text-sm ${
+          verdict.performance === 'correct'
+            ? 'border-good-500/40 bg-good-500/10 text-good-500'
+            : verdict.performance === 'partial'
+              ? 'border-warn-500/40 bg-warn-500/10 text-warn-500'
+              : 'border-bad-500/40 bg-bad-500/10 text-bad-500'
+        }`}
+      >
+        <p className="font-medium">AI verdict: {GRADE_LABELS[verdict.performance]}</p>
+        {verdict.justification && <p className="text-xs mt-1 opacity-90">{verdict.justification}</p>}
+      </div>
+      <GradeButtons
+        onGrade={onGrade}
+        grading={grading}
+        responseText={responseText}
+        aiPerformance={verdict.performance}
+        suggested={verdict.performance}
+        prompt="Confirm the AI's grade or override it — your call is final."
+      />
     </div>
   )
 }
@@ -188,7 +276,7 @@ function McqPlayer({ artifact, mode, onGrade, grading }: PlayerProps) {
           </p>
           <Button
             disabled={grading}
-            onClick={() => onGrade(finalGrade, `MCQ score ${correctCount}/${questions.length}`)}
+            onClick={() => onGrade(finalGrade, `MCQ score ${correctCount}/${questions.length}`, finalGrade)}
           >
             Finish review
           </Button>
@@ -217,7 +305,7 @@ function DiagramPlayer({ artifact, mode, onGrade, grading }: PlayerProps) {
 }
 
 /** Open-recall formats: attempt first, then reveal (testing effect). */
-function RecallPlayer({ artifact, mode, onGrade, grading }: PlayerProps) {
+function RecallPlayer({ artifact, mode, onGrade, onRequestGrade, grading }: PlayerProps) {
   const items = useMemo(() => {
     const c = artifact.content
     switch (c.type) {
@@ -298,7 +386,12 @@ function RecallPlayer({ artifact, mode, onGrade, grading }: PlayerProps) {
             </Button>
           )}
           {isLast && mode === 'review' && onGrade && (
-            <GradeButtons onGrade={onGrade} grading={grading} responseText={[...attempts, attempt].join('\n---\n')} />
+            <AIGradedButtons
+              onGrade={onGrade}
+              onRequestGrade={onRequestGrade}
+              grading={grading}
+              responseText={[...attempts, attempt].join('\n---\n')}
+            />
           )}
           {isLast && mode === 'learn' && LEARN_FOOTNOTE}
         </div>

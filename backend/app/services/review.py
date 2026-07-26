@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session as DBSession
 
 from app.core.config import settings
 from app.db.base import utcnow
+from app.llm import get_llm
 from app.models import (
     KnowledgeUnit,
     LearningArtifact,
@@ -29,6 +30,87 @@ from app.services.artifacts import create_artifact
 from app.services.metrics import log_event
 
 EASE_MIN, EASE_MAX = 1.3, 3.0
+
+GRADING_SYSTEM_PROMPT = """[TASK:grade_recall]
+You grade a learner's recall attempt against reference material from their own past coding work.
+Judge RECALL of the substance, not writing style: paraphrases and partial wording count.
+- correct: the attempt captures the key point(s) of the reference
+- partial: some of it, or vague/incomplete
+- incorrect: wrong, empty of substance, or unrelated
+The user message is JSON: {"question": "...", "reference": "...", "attempt": "..."}.
+Respond ONLY with JSON: {"performance": "correct"|"partial"|"incorrect", "justification": "one short sentence"}"""
+
+
+def _reference_text(artifact: LearningArtifact) -> tuple[str, str]:
+    """Returns (question_text, reference_answer_text) for gradeable recall formats."""
+    c = artifact.content or {}
+    kind = c.get("type")
+    if kind == "retrieval_practice":
+        qs = c.get("questions", [])
+        return (
+            " / ".join(q.get("question", "") for q in qs),
+            " / ".join(q.get("answer", "") for q in qs),
+        )
+    if kind == "qa":
+        qs = c.get("questions", [])
+        return (
+            " / ".join(q.get("question", "") for q in qs),
+            " / ".join(" ; ".join(q.get("expected_points", [])) for q in qs),
+        )
+    if kind == "self_explanation":
+        ps = c.get("prompts", [])
+        return (
+            " / ".join(p.get("prompt", "") for p in ps),
+            " / ".join(p.get("context", "") for p in ps),
+        )
+    if kind == "synthesis":
+        return c.get("prompt", ""), ", ".join(c.get("related_titles", []))
+    if kind == "flashcard":
+        cards = c.get("cards", [])
+        return (
+            " / ".join(card.get("front", "") for card in cards),
+            " / ".join(card.get("back", "") for card in cards),
+        )
+    return "", ""
+
+
+def grade_recall(db: DBSession, user: User, unit_id: str, artifact_id: str, response_text: str) -> dict:
+    """AI-suggested grade for a typed recall attempt. The user can override —
+    both grades are stored, giving a calibration signal over time."""
+    import json as _json
+
+    unit = db.get(KnowledgeUnit, unit_id)
+    if unit is None or unit.user_id != user.id or unit.deleted_at is not None:
+        raise HTTPException(status_code=404, detail="Knowledge unit not found")
+    artifact = db.get(LearningArtifact, artifact_id)
+    if artifact is None or artifact.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+
+    question, reference = _reference_text(artifact)
+    if not reference.strip():
+        return {"performance": None, "justification": "No reference answer for this format — grade yourself."}
+    if not response_text.strip():
+        return {"performance": "incorrect", "justification": "No attempt was written."}
+
+    payload = _json.dumps(
+        {
+            "question": question[:2000],
+            "reference": f"{reference[:3000]}\nUnit: {unit.title}. {unit.summary or ''}"[:4000],
+            "attempt": response_text[:4000],
+        }
+    )
+    raw = get_llm().complete(
+        [{"role": "system", "content": GRADING_SYSTEM_PROMPT}, {"role": "user", "content": payload}],
+        json_mode=True,
+        max_tokens=300,
+    )
+    try:
+        verdict = _json.loads(raw)
+        if verdict.get("performance") not in ("correct", "partial", "incorrect"):
+            raise ValueError("bad performance value")
+        return {"performance": verdict["performance"], "justification": str(verdict.get("justification", ""))[:500]}
+    except (ValueError, TypeError, _json.JSONDecodeError):
+        return {"performance": None, "justification": "The grader returned an unreadable verdict — grade yourself."}
 
 
 def _due_states(db: DBSession, user_id: str) -> list[tuple[ReviewState, KnowledgeUnit]]:
@@ -48,14 +130,23 @@ def _due_states(db: DBSession, user_id: str) -> list[tuple[ReviewState, Knowledg
 
 
 def _early_states(db: DBSession, user_id: str) -> list[tuple[ReviewState, KnowledgeUnit]]:
-    """Units NOT yet due (still scheduled ahead or inside the consolidation window)."""
+    """Units NOT yet due (still scheduled ahead or inside the consolidation window).
+    Units reviewed within the minimum gap are excluded — otherwise a just-graded
+    unit becomes "upcoming" again and the early queue loops forever."""
     now = utcnow()
+    gap_cutoff = now - timedelta(hours=settings.MIN_REVIEW_GAP_HOURS)
+    recently_reviewed = (
+        select(ReviewHistory.unit_id)
+        .where(ReviewHistory.user_id == user_id, ReviewHistory.reviewed_at > gap_cutoff)
+        .scalar_subquery()
+    )
     rows = db.execute(
         select(ReviewState, KnowledgeUnit)
         .join(KnowledgeUnit, KnowledgeUnit.id == ReviewState.unit_id)
         .where(
             ReviewState.user_id == user_id,
             (ReviewState.next_review_at > now) | (ReviewState.first_review_at > now),
+            ReviewState.unit_id.notin_(recently_reviewed),
             KnowledgeUnit.deleted_at.is_(None),
         )
         .order_by(ReviewState.next_review_at)
@@ -217,6 +308,7 @@ def submit_review(db: DBSession, user: User, submission: ReviewSubmission) -> Re
             unit_id=unit.id,
             artifact_id=submission.artifact_id,
             performance=submission.performance,
+            ai_performance=submission.ai_performance,
             response_text=submission.response_text,
             day_offset=day_offset,
         )

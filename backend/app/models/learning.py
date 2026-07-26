@@ -58,6 +58,8 @@ class ReviewHistory(Base):
     unit_id: Mapped[str] = mapped_column(GUID, ForeignKey("knowledge_units.id"), nullable=False)
     artifact_id: Mapped[str | None] = mapped_column(GUID, ForeignKey("learning_artifacts.id"), nullable=True)
     performance: Mapped[str] = mapped_column(String(20), nullable=False)  # 'correct' | 'partial' | 'incorrect'
+    # AI-suggested grade for the same attempt (user may override) — calibration signal.
+    ai_performance: Mapped[str | None] = mapped_column(String(20), nullable=True)
     response_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     day_offset: Mapped[int] = mapped_column(Integer, nullable=False)
     reviewed_at: Mapped[object] = mapped_column(UTCDateTime, nullable=False, default=utcnow)

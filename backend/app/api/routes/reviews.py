@@ -1,11 +1,15 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session as DBSession
 
 from app.api.deps import get_current_user
+from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.db.session import get_db
 from app.models import User
 from app.schemas.learning import (
     ArtifactOut,
+    GradeRequest,
+    GradeVerdict,
     KnowledgeUnitOut,
     ReviewQueueItem,
     ReviewQueueOut,
@@ -15,6 +19,20 @@ from app.schemas.learning import (
 from app.services import review as review_service
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
+
+
+@router.post("/grade", response_model=GradeVerdict)
+@limiter.limit(settings.RATE_LIMIT_LLM)
+def grade(
+    request: Request,
+    body: GradeRequest,
+    db: DBSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """AI-suggested grade for a typed recall attempt (evidence over self-report).
+    Advisory only — the user confirms or overrides via /submit; nothing is written here."""
+    verdict = review_service.grade_recall(db, user, body.unit_id, body.artifact_id, body.response_text)
+    return GradeVerdict(**verdict)
 
 
 @router.get("/queue", response_model=ReviewQueueOut)

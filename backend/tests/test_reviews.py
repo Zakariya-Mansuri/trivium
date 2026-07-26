@@ -169,6 +169,92 @@ def test_early_review_opt_in(client, user):
     assert spam.status_code == 409
 
 
+def test_ai_grading_with_user_override(client, user):
+    """AI grades the typed attempt; the user's final grade (override allowed) drives
+    SM-2, and BOTH grades land in review_history as a calibration signal."""
+    session = import_rich_session(client, user["headers"])
+    unit_ids = _unit_ids_for_session(session["id"])
+    _make_due(unit_ids)
+
+    queue = client.get(f"{API}/reviews/queue", headers=user["headers"]).json()
+    item = queue["items"][0]
+    unit_id, artifact_id = item["unit"]["id"], item["artifact"]["id"]
+
+    # Good attempt (echoes the unit summary) -> correct-ish verdict with justification.
+    summary = item["unit"]["summary"] or item["unit"]["title"]
+    good = client.post(
+        f"{API}/reviews/grade",
+        json={"unit_id": unit_id, "artifact_id": artifact_id, "response_text": summary},
+        headers=user["headers"],
+    )
+    assert good.status_code == 200
+    verdict = good.json()
+    assert verdict["performance"] in ("correct", "partial", "incorrect")
+    assert verdict["justification"]
+
+    # Gibberish attempt -> not correct.
+    bad = client.post(
+        f"{API}/reviews/grade",
+        json={"unit_id": unit_id, "artifact_id": artifact_id, "response_text": "zzz qqq purple elephants dancing"},
+        headers=user["headers"],
+    ).json()
+    assert bad["performance"] in ("partial", "incorrect")
+
+    # Submit with an override: user says partial although AI said something else.
+    result = client.post(
+        f"{API}/reviews/submit",
+        json={
+            "unit_id": unit_id,
+            "artifact_id": artifact_id,
+            "performance": "partial",
+            "ai_performance": verdict["performance"],
+            "response_text": summary,
+        },
+        headers=user["headers"],
+    )
+    assert result.status_code == 200
+
+    from app.models import ReviewHistory
+
+    db = SessionLocal()
+    try:
+        row = db.scalars(select(ReviewHistory).where(ReviewHistory.unit_id == unit_id)).one()
+        assert row.performance == "partial"  # the user's grade drives scheduling
+        assert row.ai_performance == verdict["performance"]  # AI verdict preserved
+    finally:
+        db.close()
+
+    # Ownership: grading someone else's unit is a 404.
+    empty = client.post(
+        f"{API}/reviews/grade",
+        json={"unit_id": unit_id, "artifact_id": artifact_id, "response_text": ""},
+        headers=user["headers"],
+    ).json()
+    assert empty["performance"] == "incorrect"  # empty attempt is never a pass
+
+
+def test_early_queue_does_not_loop_after_completion(client, user):
+    """Bug fix: finishing the early queue must not re-serve the same units."""
+    session = import_rich_session(client, user["headers"])
+    unit_ids = set(_unit_ids_for_session(session["id"]))
+
+    queue = client.get(f"{API}/reviews/queue", params={"early": "true"}, headers=user["headers"]).json()
+    served = [i["unit"]["id"] for i in queue["items"] if i["unit"]["id"] in unit_ids]
+    assert served
+    for uid in served:
+        resp = client.post(
+            f"{API}/reviews/submit",
+            json={"unit_id": uid, "performance": "correct", "early": True},
+            headers=user["headers"],
+        )
+        assert resp.status_code == 200
+
+    # Reloading the early queue must NOT contain any of the just-reviewed units.
+    reloaded = client.get(f"{API}/reviews/queue", params={"early": "true"}, headers=user["headers"]).json()
+    again = {i["unit"]["id"] for i in reloaded["items"]} & set(served)
+    assert not again, f"early queue re-served just-reviewed units: {again}"
+
+
 def test_review_isolation_and_unknown_unit(client, user, other_user):
     session = import_rich_session(client, user["headers"])
     unit_ids = _unit_ids_for_session(session["id"])

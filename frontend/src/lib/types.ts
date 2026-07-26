@@ -169,6 +169,11 @@ export interface IndependenceMetrics {
   note: string
 }
 
+export interface GradeVerdict {
+  performance: 'correct' | 'partial' | 'incorrect' | null
+  justification: string
+}
+
 export interface AgentChatResponse {
   session_id: string
   user_message: Message
