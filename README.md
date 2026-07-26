@@ -1,5 +1,8 @@
 # ▲ Trivium — vibe code without getting dumber
 
+**Live:** [trivium-dun.vercel.app](https://trivium-dun.vercel.app) · API: [trivium-api.onrender.com](https://trivium-api.onrender.com/health)
+*(free tier — the first request after idle takes ~50s to wake the server)*
+
 The learning layer for AI-assisted coding. Trivium converts your coding activity (agent chats,
 imported sessions, decisions, bug-fixes) into durable personal knowledge through on-demand
 **Learn** actions, **spaced & interleaved review**, and an evidence-based **Knowledge Profile**.
