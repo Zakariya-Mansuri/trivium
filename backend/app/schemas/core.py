@@ -50,7 +50,7 @@ class SessionImport(BaseModel):
     """Paste/import an external coding session (wrapped fidelity)."""
 
     project_id: str | None = None
-    source_tool: Literal["claude_code", "cursor", "copilot", "chatgpt", "other"] = "other"
+    source_tool: Literal["claude", "chatgpt", "claude_code", "cursor", "copilot", "gemini", "other"] = "other"
     title: str | None = Field(default=None, max_length=300)
     messages: list[MessageIn] = Field(min_length=1, max_length=500)
     raw_text: str | None = Field(default=None, max_length=500_000)

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      :root {
+        --ink-950: #0a0d14; --ink-900: #0f1420; --ink-800: #161d2e; --ink-700: #1f2940;
+        --ink-600: #2b3852; --ink-300: #8a97b1; --ink-100: #e3e8f2;
+        --primary: #6172f3; --primary-hover: #4f5ed6; --good: #3fbf7f; --bad: #e05d5d;
+      }
+      * { box-sizing: border-box; margin: 0; }
+      body {
+        width: 330px; background: var(--ink-950); color: var(--ink-100);
+        font: 13px/1.5 Inter, system-ui, sans-serif; padding: 16px;
+      }
+      h1 { font-size: 15px; margin-bottom: 2px; }
+      h1 span { color: var(--primary); }
+      .sub { color: var(--ink-300); font-size: 11px; margin-bottom: 14px; }
+      label { display: block; font-size: 11px; color: var(--ink-300); margin: 10px 0 4px; }
+      input, select {
+        width: 100%; background: var(--ink-800); color: var(--ink-100);
+        border: 1px solid var(--ink-600); border-radius: 8px; padding: 7px 10px; font-size: 13px;
+      }
+      input:focus, select:focus { outline: none; border-color: var(--primary); }
+      button {
+        width: 100%; margin-top: 12px; padding: 9px; border: none; border-radius: 8px;
+        background: var(--primary); color: #fff; font-weight: 600; font-size: 13px; cursor: pointer;
+      }
+      button:hover { background: var(--primary-hover); }
+      button:disabled { background: var(--ink-700); color: var(--ink-300); cursor: not-allowed; }
+      button.ghost { background: transparent; color: var(--ink-300); font-weight: 400; padding: 4px; margin-top: 6px; }
+      button.ghost:hover { color: var(--ink-100); }
+      .status { margin-top: 10px; font-size: 12px; border-radius: 8px; padding: 8px 10px; display: none; }
+      .status.err { display: block; background: rgba(224, 93, 93, 0.12); color: var(--bad); }
+      .status.ok { display: block; background: rgba(63, 191, 127, 0.12); color: var(--good); }
+      .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+      .who { font-size: 11px; color: var(--ink-300); }
+      .page {
+        background: var(--ink-900); border: 1px solid var(--ink-700); border-radius: 8px;
+        padding: 8px 10px; font-size: 12px; color: var(--ink-300); margin-top: 6px;
+      }
+      .page b { color: var(--ink-100); font-weight: 600; }
+      a { color: var(--primary); }
+      #view-app, #view-login { display: none; }
+    </style>
+  </head>
+  <body>
+    <h1><span>▲</span> Trivium Companion</h1>
+    <p class="sub">Import this chat into your knowledge graph.</p>
+
+    <div id="view-login">
+      <label>Trivium server</label>
+      <input id="apiUrl" placeholder="http://localhost:8000" />
+      <label>Email</label>
+      <input id="email" type="email" placeholder="you@example.com" />
+      <label>Password</label>
+      <input id="password" type="password" placeholder="••••••••" />
+      <button id="loginBtn">Log in</button>
+      <div id="loginStatus" class="status"></div>
+    </div>
+
+    <div id="view-app">
+      <div class="row">
+        <span class="who" id="who"></span>
+        <button class="ghost" id="logoutBtn" style="width: auto">Log out</button>
+      </div>
+      <div class="page" id="pageInfo">Checking this tab…</div>
+      <label>Project (optional)</label>
+      <select id="project"><option value="">— none —</option></select>
+      <button id="importBtn" disabled>Import this chat</button>
+      <div id="importStatus" class="status"></div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

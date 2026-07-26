@@ -15,6 +15,7 @@ Built from `PRD-v1.md`, `full-technical-document-v1.md` and `developer-implement
 | Database | PostgreSQL (production) / SQLite (local dev & tests) |
 | LLM | Provider abstraction: `mock` (offline, default) · OpenAI · Groq · Anthropic · Sarvam |
 | Frontend | React 19 · TypeScript · Vite · Tailwind CSS 4 · react-router 7 · Mermaid |
+| Browser extension | Manifest V3 (Chrome/Edge/Brave) — one-click ChatGPT/Claude import, see `extension/README.md` |
 | Deploy | Render (API + Postgres via `render.yaml`) · Vercel (SPA via `frontend/vercel.json`) |
 
 ## Quick start (local)

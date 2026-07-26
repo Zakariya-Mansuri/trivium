@@ -50,6 +50,26 @@ def test_import_session_extracts_knowledge_units(client, user):
     assert all(u["source_fidelity"] == "wrapped" for u in units)
 
 
+def test_import_from_extension_tools(client, user):
+    """The Companion extension imports with source_tool 'claude'/'chatgpt'."""
+    for tool in ("claude", "chatgpt", "gemini"):
+        resp = client.post(
+            f"{API}/sessions/import",
+            json={
+                "source_tool": tool,
+                "title": f"{tool} conversation",
+                "messages": [
+                    {"role": "user", "content": "How do I fix this jwt bug?", "authored_by": "user"},
+                    {"role": "assistant", "content": "The secret mismatch causes the error in fastapi.", "authored_by": "ai"},
+                ],
+            },
+            headers=user["headers"],
+        )
+        assert resp.status_code == 201, resp.text
+        assert resp.json()["source_tool"] == tool
+        assert resp.json()["source_fidelity"] == "wrapped"
+
+
 def test_import_with_too_few_messages_is_insufficient(client, user):
     resp = client.post(
         f"{API}/sessions/import",
