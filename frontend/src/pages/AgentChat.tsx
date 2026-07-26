@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import Markdown from '../components/Markdown'
 import { Button, Card, ErrorNote, PageHeader, TextArea } from '../components/ui'
 import { api } from '../lib/api'
 import type { AgentChatResponse, Message, Project } from '../lib/types'
@@ -121,11 +122,13 @@ export default function AgentChat() {
         {messages.map((m, i) => (
           <div key={`${m.id}-${i}`} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-[85%] rounded-xl px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed ${
-                m.role === 'user' ? 'bg-primary-600/20 border border-primary-600/40 text-ink-100' : 'bg-ink-800 border border-ink-600 text-ink-100'
+              className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
+                m.role === 'user'
+                  ? 'bg-primary-600/20 border border-primary-600/40 text-ink-100 whitespace-pre-wrap'
+                  : 'bg-ink-800 border border-ink-600 text-ink-100'
               }`}
             >
-              {m.content}
+              {m.role === 'user' ? m.content : <Markdown>{m.content}</Markdown>}
             </div>
           </div>
         ))}

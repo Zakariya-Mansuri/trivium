@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import ArtifactPlayer from '../components/ArtifactPlayer'
+import Markdown from '../components/Markdown'
 import { Badge, Button, Card, ErrorNote, PageHeader, Spinner } from '../components/ui'
 import { api } from '../lib/api'
 import type { KnowledgeUnit, LearnResponse, SessionDetail as SessionDetailType } from '../lib/types'
@@ -134,7 +135,11 @@ export default function SessionDetail() {
                   ✦ Learn
                 </button>
               </div>
-              <p className="text-sm text-ink-100 whitespace-pre-wrap leading-relaxed">{m.content}</p>
+              {m.role === 'user' ? (
+                <p className="text-sm text-ink-100 whitespace-pre-wrap leading-relaxed">{m.content}</p>
+              ) : (
+                <Markdown>{m.content}</Markdown>
+              )}
               {m.code_diff && (
                 <pre className="mt-3 rounded-lg bg-ink-950 border border-ink-700 p-3 text-xs text-ink-200 overflow-x-auto">
                   {m.code_diff}

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Artifact } from '../lib/types'
+import Markdown from './Markdown'
 import Mermaid from './Mermaid'
 import { Badge, Button, TextArea } from './ui'
 
@@ -84,7 +85,7 @@ export default function ArtifactPlayer({
         )}
       </div>
 
-      <p className="text-ink-100 leading-relaxed">{item.prompt}</p>
+      <Markdown>{item.prompt}</Markdown>
 
       <TextArea
         rows={4}
@@ -106,8 +107,8 @@ export default function ArtifactPlayer({
             </div>
           )}
           {item.answer && (
-            <div className="rounded-lg border border-ink-600 bg-ink-800 p-4 text-sm text-ink-200 whitespace-pre-wrap">
-              {item.answer}
+            <div className="rounded-lg border border-ink-600 bg-ink-800 p-4">
+              <Markdown>{item.answer}</Markdown>
             </div>
           )}
           {item.expectedPoints && item.expectedPoints.length > 0 && (
