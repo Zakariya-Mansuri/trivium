@@ -14,6 +14,10 @@ class User(Base):
     created_at: Mapped[object] = mapped_column(UTCDateTime, nullable=False, default=utcnow)
     notification_prefs: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     learning_intensity: Mapped[str] = mapped_column(String(20), nullable=False, default="balanced")
+    # User-attached LLM provider (BYOK, OpenCode-style). Key is encrypted at rest.
+    llm_provider: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    llm_model: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    llm_api_key_enc: Mapped[str | None] = mapped_column(Text, nullable=True)
     deleted_at: Mapped[object | None] = mapped_column(UTCDateTime, nullable=True)
 
 

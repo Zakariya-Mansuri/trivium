@@ -17,6 +17,8 @@ from app.db.base import utcnow
 from app.db.session import get_db
 from app.models import RefreshToken, User
 from app.schemas.auth import (
+    LLMConfigIn,
+    LLMConfigOut,
     LoginRequest,
     PasswordChangeRequest,
     RefreshRequest,
@@ -115,6 +117,92 @@ def update_me(body: UserUpdate, db: DBSession = Depends(get_db), user: User = De
     db.commit()
     db.refresh(user)
     return user
+
+
+# --- Attached LLM provider (BYOK, OpenCode-style) ---
+
+
+def _llm_config_out(user: User) -> LLMConfigOut:
+    from app.core.config import settings as app_settings
+    from app.core.crypto import decrypt_secret
+    from app.llm.registry import PROVIDERS
+
+    if user.llm_provider and user.llm_api_key_enc:
+        key = decrypt_secret(user.llm_api_key_enc)
+        spec = PROVIDERS.get(user.llm_provider, {})
+        return LLMConfigOut(
+            provider=user.llm_provider,
+            model=user.llm_model or spec.get("default_model"),
+            key_hint=f"••••{key[-4:]}" if key else None,
+            source="user",
+            active_label=f"Your {spec.get('label', user.llm_provider)} key",
+        )
+    env_provider = app_settings.LLM_PROVIDER.lower()
+    has_env = env_provider in PROVIDERS and bool(app_settings.LLM_API_KEY)
+    return LLMConfigOut(
+        provider=None,
+        model=None,
+        key_hint=None,
+        source="server_default",
+        active_label=f"Server default ({PROVIDERS[env_provider]['label']})" if has_env else "Offline mock (no key configured)",
+    )
+
+
+@router.get("/me/llm", response_model=LLMConfigOut)
+def get_llm_config(user: User = Depends(get_current_user)):
+    return _llm_config_out(user)
+
+
+@router.get("/me/llm/providers")
+def list_llm_providers(user: User = Depends(get_current_user)):
+    from app.llm.registry import public_catalog
+
+    return {"providers": public_catalog()}
+
+
+@router.put("/me/llm", response_model=LLMConfigOut)
+def set_llm_config(body: LLMConfigIn, db: DBSession = Depends(get_db), user: User = Depends(get_current_user)):
+    from app.core.crypto import encrypt_secret
+    from app.llm.registry import PROVIDERS
+
+    if body.provider not in PROVIDERS:
+        raise HTTPException(status_code=422, detail=f"Unknown provider. Supported: {', '.join(PROVIDERS)}")
+    user.llm_provider = body.provider
+    user.llm_model = body.model or None
+    user.llm_api_key_enc = encrypt_secret(body.api_key)
+    db.commit()
+    db.refresh(user)
+    return _llm_config_out(user)
+
+
+@router.delete("/me/llm", response_model=LLMConfigOut)
+def clear_llm_config(db: DBSession = Depends(get_db), user: User = Depends(get_current_user)):
+    user.llm_provider = None
+    user.llm_model = None
+    user.llm_api_key_enc = None
+    db.commit()
+    db.refresh(user)
+    return _llm_config_out(user)
+
+
+@router.post("/me/llm/test")
+@limiter.limit(settings.RATE_LIMIT_LLM)
+def test_llm_config(request: Request, user: User = Depends(get_current_user)):
+    """Sends a one-word completion through the user's attached provider."""
+    from app.llm import get_llm
+    from app.llm.base import LLMError
+    from app.llm.mock import MockProvider
+
+    provider = get_llm(user)
+    if isinstance(provider, MockProvider):
+        return {"ok": True, "provider": "mock", "note": "No real provider attached — using the offline mock."}
+    try:
+        reply = provider.complete(
+            [{"role": "user", "content": "Reply with exactly one word: WORKING"}], max_tokens=200
+        )
+        return {"ok": True, "provider": provider.name, "model": provider.model, "reply": reply[:80]}
+    except LLMError as exc:
+        return {"ok": False, "provider": provider.name, "error": str(exc)[:300]}
 
 
 @router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)

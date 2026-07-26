@@ -1,4 +1,4 @@
-"""Learning Artifact Generator + the "Learn" action scope resolver.
+﻿"""Learning Artifact Generator + the "Learn" action scope resolver.
 
 Learn is user-initiated at any granularity (message / chat / project / time_range),
 never auto-triggered. Insufficient content is communicated clearly instead of
@@ -74,15 +74,14 @@ def sanitize_mermaid(spec: str) -> str:
     return _MERMAID_NODE_RE.sub(quote_label, spec)
 
 
-def generate_artifact_content(fmt: str, units: list[KnowledgeUnit]) -> dict:
+def generate_artifact_content(fmt: str, units: list[KnowledgeUnit], user: User | None = None) -> dict:
     payload = json.dumps(
         {
             "format": fmt,
             "units": [{"title": u.title, "summary": u.summary or "", "unit_type": u.unit_type} for u in units],
         }
     )
-    llm = get_llm()
-    raw = llm.complete(
+    raw = get_llm(user).complete(
         [{"role": "system", "content": ARTIFACT_SYSTEM_PROMPT}, {"role": "user", "content": payload}],
         json_mode=True,
     )
@@ -110,7 +109,7 @@ def generate_artifact_content(fmt: str, units: list[KnowledgeUnit]) -> dict:
 
 def create_artifact(
     db: DBSession,
-    user_id: str,
+    user: User,
     scope_type: str,
     scope_ref: dict,
     fmt: str,
@@ -118,11 +117,11 @@ def create_artifact(
     triggered_by: str,
 ) -> LearningArtifact:
     artifact = LearningArtifact(
-        user_id=user_id,
+        user_id=user.id,
         scope_type=scope_type,
         scope_ref=scope_ref,
         format=fmt,
-        content=generate_artifact_content(fmt, units),
+        content=generate_artifact_content(fmt, units, user),
         triggered_by=triggered_by,
     )
     db.add(artifact)
@@ -211,14 +210,14 @@ def learn(db: DBSession, user: User, req: LearnRequest) -> tuple[list[LearningAr
         by_format.setdefault(fmt, []).append(unit)
 
     artifacts = [
-        create_artifact(db, user.id, req.scope_type, scope_ref, fmt, fmt_units, "user_action")
+        create_artifact(db, user, req.scope_type, scope_ref, fmt, fmt_units, "user_action")
         for fmt, fmt_units in by_format.items()
     ]
 
     # Additive scope-level rule: multi-component architecture -> diagram.
     if format_selection.scope_needs_diagram(db, units):
         artifacts.append(
-            create_artifact(db, user.id, req.scope_type, scope_ref, "diagram", units, "user_action")
+            create_artifact(db, user, req.scope_type, scope_ref, "diagram", units, "user_action")
         )
 
     # Additive recognition check: an MCQ quiz over the scope's units. Recall stays
@@ -226,7 +225,7 @@ def learn(db: DBSession, user: User, req: LearnRequest) -> tuple[list[LearningAr
     mcq_units = units[:8]
     format_selection.log_supplement(db, mcq_units, "mcq", "scope-level recognition-check supplement")
     artifacts.append(
-        create_artifact(db, user.id, req.scope_type, scope_ref, "mcq", mcq_units, "user_action")
+        create_artifact(db, user, req.scope_type, scope_ref, "mcq", mcq_units, "user_action")
     )
 
     db.commit()
@@ -245,3 +244,4 @@ def mark_artifact_completed(db: DBSession, user: User, artifact_id: str) -> Lear
         db.commit()
         db.refresh(artifact)
     return artifact
+

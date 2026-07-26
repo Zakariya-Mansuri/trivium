@@ -151,9 +151,9 @@ def prompting_metrics(messages: list[Message]) -> dict:
     }
 
 
-def _analyze(system_prompt: str, metrics: dict, samples: list[str]) -> dict:
+def _analyze(system_prompt: str, metrics: dict, samples: list[str], user: User | None = None) -> dict:
     payload = json.dumps({"metrics": metrics, "samples": [s[:600] for s in samples[:SAMPLE_LIMIT]]})
-    raw = get_llm().complete(
+    raw = get_llm(user).complete(
         [{"role": "system", "content": system_prompt}, {"role": "user", "content": payload}],
         json_mode=True,
         max_tokens=3000,
@@ -198,11 +198,11 @@ def compute_report(db: DBSession, user: User, report_type: str, refresh: bool = 
     texts = [m.content for m in messages]
     if report_type == "language":
         metrics = language_metrics(texts)
-        analysis = _analyze(LANGUAGE_SYSTEM_PROMPT, metrics, texts)
+        analysis = _analyze(LANGUAGE_SYSTEM_PROMPT, metrics, texts, user)
         skill = "language"
     else:
         metrics = prompting_metrics(messages)
-        analysis = _analyze(PROMPTING_SYSTEM_PROMPT, metrics, texts)
+        analysis = _analyze(PROMPTING_SYSTEM_PROMPT, metrics, texts, user)
         skill = "prompting"
 
     weakness_keywords = [w.get("area", "") for w in analysis.get("weaknesses", [])]

@@ -18,6 +18,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Dev databases may already have this table via the app's create_all bootstrap.
+    from sqlalchemy import inspect
+
+    if inspect(op.get_bind()).has_table('skill_reports'):
+        return
     op.create_table(
         'skill_reports',
         sa.Column('id', app.db.base.GUID(length=36), nullable=False),

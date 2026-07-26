@@ -56,6 +56,20 @@ class UserUpdate(BaseModel):
         return v
 
 
+class LLMConfigIn(BaseModel):
+    provider: str = Field(max_length=30)
+    model: str | None = Field(default=None, max_length=120)
+    api_key: str = Field(min_length=8, max_length=500)
+
+
+class LLMConfigOut(BaseModel):
+    provider: str | None
+    model: str | None
+    key_hint: str | None  # last 4 chars only — the key itself is never returned
+    source: str  # 'user' | 'server_default'
+    active_label: str
+
+
 class PasswordChangeRequest(BaseModel):
     current_password: str = Field(max_length=128)
     new_password: str = Field(min_length=8, max_length=128)

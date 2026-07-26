@@ -99,7 +99,7 @@ def grade_recall(db: DBSession, user: User, unit_id: str, artifact_id: str, resp
             "attempt": response_text[:4000],
         }
     )
-    raw = get_llm().complete(
+    raw = get_llm(user).complete(
         [{"role": "system", "content": GRADING_SYSTEM_PROMPT}, {"role": "user", "content": payload}],
         json_mode=True,
         max_tokens=300,
@@ -190,7 +190,7 @@ def _artifact_for_unit(db: DBSession, user: User, unit: KnowledgeUnit) -> Learni
         return existing
     fmt = format_selection.choose_format(db, unit)
     return create_artifact(
-        db, user.id, "chat", {"session_id": unit.session_id}, fmt, [unit], "scheduled_review"
+        db, user, "chat", {"session_id": unit.session_id}, fmt, [unit], "scheduled_review"
     )
 
 

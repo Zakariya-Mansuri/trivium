@@ -44,28 +44,14 @@ def _post_with_retries(name: str, url: str, *, json_body: dict, headers: dict) -
         return resp
     raise LLMError(f"{name} request failed: {last_exc}")
 
-OPENAI_COMPAT_BASE_URLS = {
-    "openai": "https://api.openai.com/v1",
-    "groq": "https://api.groq.com/openai/v1",
-    "sarvam": "https://api.sarvam.ai/v1",
-}
-
-DEFAULT_MODELS = {
-    "openai": "gpt-4o-mini",
-    "groq": "llama-3.3-70b-versatile",
-    "anthropic": "claude-sonnet-5",
-    "sarvam": "sarvam-m",
-}
-
-
 class OpenAICompatProvider(LLMProvider):
-    """Works for OpenAI, Groq, Sarvam and any other OpenAI-compatible endpoint."""
+    """Any OpenAI-compatible endpoint (Groq, OpenRouter, Gemini, Cerebras, OpenAI, Sarvam...)."""
 
-    def __init__(self, provider: str):
-        self.name = provider
-        self.base_url = OPENAI_COMPAT_BASE_URLS[provider]
-        self.model = settings.LLM_MODEL or DEFAULT_MODELS[provider]
-        self.api_key = settings.LLM_API_KEY
+    def __init__(self, name: str, base_url: str, model: str, api_key: str):
+        self.name = name
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+        self.api_key = api_key
 
     def complete(self, messages: list[dict], *, json_mode: bool = False, max_tokens: int = 2048) -> str:
         body: dict = {"model": self.model, "messages": messages, "max_tokens": max_tokens}
@@ -87,9 +73,9 @@ class OpenAICompatProvider(LLMProvider):
 class AnthropicProvider(LLMProvider):
     name = "anthropic"
 
-    def __init__(self):
-        self.model = settings.LLM_MODEL or DEFAULT_MODELS["anthropic"]
-        self.api_key = settings.LLM_API_KEY
+    def __init__(self, model: str, api_key: str):
+        self.model = model
+        self.api_key = api_key
 
     def complete(self, messages: list[dict], *, json_mode: bool = False, max_tokens: int = 2048) -> str:
         system = "\n".join(m["content"] for m in messages if m["role"] == "system")

@@ -74,7 +74,7 @@ def chat(
     llm_messages.append({"role": "user", "content": body.message})
 
     try:
-        reply = get_llm().complete(llm_messages)
+        reply = get_llm(user).complete(llm_messages)
     except LLMError:
         # Provider down after retries — discard the uncommitted turn; the global
         # LLMError handler turns this into a friendly 503 with Retry-After.

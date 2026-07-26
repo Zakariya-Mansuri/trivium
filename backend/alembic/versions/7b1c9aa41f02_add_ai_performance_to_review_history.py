@@ -16,6 +16,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    from sqlalchemy import inspect
+
+    columns = {c['name'] for c in inspect(op.get_bind()).get_columns('review_history')}
+    if 'ai_performance' in columns:
+        return
     op.add_column('review_history', sa.Column('ai_performance', sa.String(length=20), nullable=True))
 
 

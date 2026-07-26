@@ -63,7 +63,10 @@ def normalize_title(title: str) -> str:
 
 def extract_units_from_text(db: DBSession, session: Session, transcript: str) -> list[KnowledgeUnit]:
     """Runs LLM extraction over a transcript and persists units + review state + relations."""
-    llm = get_llm()
+    from app.models import User as UserModel
+
+    owner = db.get(UserModel, session.user_id)  # honor the owner's attached provider
+    llm = get_llm(owner)
     raw = llm.complete(
         [
             {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
