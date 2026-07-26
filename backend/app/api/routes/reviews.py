@@ -18,9 +18,14 @@ router = APIRouter(prefix="/reviews", tags=["reviews"])
 
 
 @router.get("/queue", response_model=ReviewQueueOut)
-def get_queue(db: DBSession = Depends(get_db), user: User = Depends(get_current_user)):
-    """Due reviews, interleaved across projects, diffuse-mode delay respected."""
-    data = review_service.build_queue(db, user)
+def get_queue(
+    early: bool = False,
+    db: DBSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Due reviews, interleaved across projects, diffuse-mode delay respected.
+    With ?early=true (an explicit user choice) not-yet-due items fill spare slots."""
+    data = review_service.build_queue(db, user, include_early=early)
     return ReviewQueueOut(
         items=[
             ReviewQueueItem(
@@ -29,10 +34,12 @@ def get_queue(db: DBSession = Depends(get_db), user: User = Depends(get_current_
                 review_state_id=item["state"].id,
                 mastery_status=item["state"].mastery_status,
                 next_review_at=item["state"].next_review_at,
+                early=item["early"],
             )
             for item in data["items"]
         ],
         total_due=data["total_due"],
+        total_early=data["total_early"],
         projects_in_session=data["projects_in_session"],
         next_due_at=data["next_due_at"],
     )

@@ -152,7 +152,10 @@ export default function Learn() {
             <div className="space-y-5">
               <p className="text-sm text-ink-300">
                 {result.artifacts.length} artifact{result.artifacts.length === 1 ? '' : 's'} covering{' '}
-                {result.units_covered} knowledge units:
+                {result.units_covered} knowledge units — practice below, or{' '}
+                <a href="/app/review?early=1" className="text-accent-400 hover:text-accent-500">
+                  review them for a grade right now →
+                </a>
               </p>
               {result.artifacts.map((a) => (
                 <Card key={a.id}>

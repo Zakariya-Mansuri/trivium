@@ -212,6 +212,25 @@ class MockProvider(LLMProvider):
                 }
             )
 
+        if fmt == "mcq":
+            questions = []
+            distractor_pool = [
+                "It only applies when the code runs in production",
+                "It is handled automatically by the framework with no configuration",
+                "It was a limitation of the programming language itself",
+            ]
+            for t in titles:
+                correct = summaries.get(t) or f"The approach captured in '{t}' from your own session"
+                questions.append(
+                    {
+                        "question": f"Which statement best describes '{t}'?",
+                        "choices": [correct[:180], *distractor_pool],
+                        "correct_index": 0,
+                        "explanation": f"This comes directly from your session: {correct[:200]}",
+                    }
+                )
+            return json.dumps({"type": "mcq", "questions": questions})
+
         if fmt == "diagram":
             safe = [re.sub(r"[^a-zA-Z0-9 _-]", "", t)[:40] or "node" for t in titles]
             nodes = "\n".join(f'  N{i}["{t}"]' for i, t in enumerate(safe))

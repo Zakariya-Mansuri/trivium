@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import ArtifactPlayer from '../components/ArtifactPlayer'
-import { Badge, Card, EmptyState, ErrorNote, PageHeader, Spinner } from '../components/ui'
+import { Badge, Button, Card, EmptyState, ErrorNote, PageHeader, Spinner } from '../components/ui'
 import { api } from '../lib/api'
 import type { ReviewQueue, ReviewResult } from '../lib/types'
 
 export default function Review() {
+  const [params, setParams] = useSearchParams()
+  const earlyMode = params.get('early') === '1'
   const [queue, setQueue] = useState<ReviewQueue | null>(null)
   const [index, setIndex] = useState(0)
   const [lastResult, setLastResult] = useState<ReviewResult | null>(null)
@@ -14,9 +16,9 @@ export default function Review() {
   const [done, setDone] = useState(0)
 
   const load = useCallback(async () => {
-    setQueue(await api<ReviewQueue>('/reviews/queue'))
+    setQueue(await api<ReviewQueue>(`/reviews/queue${earlyMode ? '?early=true' : ''}`))
     setIndex(0)
-  }, [])
+  }, [earlyMode])
 
   useEffect(() => {
     load().catch((e) => setError(e.message))
@@ -39,6 +41,7 @@ export default function Review() {
           artifact_id: item.artifact.id,
           performance,
           response_text: responseText,
+          early: item.early,
         },
       })
       setLastResult(result)
@@ -64,6 +67,13 @@ export default function Review() {
             ? `${queue.total_due} due · mixed across ${Math.max(queue.projects_in_session, 1)} project${queue.projects_in_session === 1 ? '' : 's'} — interleaving is deliberate, it strengthens discrimination between concepts.`
             : undefined
         }
+        action={
+          earlyMode ? (
+            <Button variant="secondary" onClick={() => setParams({})}>
+              Back to due-only
+            </Button>
+          ) : undefined
+        }
       />
 
       {lastResult && (
@@ -82,13 +92,19 @@ export default function Review() {
           title={done > 0 ? `Queue cleared — ${done} review${done === 1 ? '' : 's'} done 🎉` : 'Nothing due for review'}
           hint={
             queue.next_due_at
-              ? `Next review unlocks ${new Date(queue.next_due_at).toLocaleString()}. Spacing out recall is what makes it stick — coming back later beats reviewing again now.`
-              : 'Trigger Learn on a session to start tracking concepts, then reviews will appear here after the consolidation window.'
+              ? `Next review unlocks ${new Date(queue.next_due_at).toLocaleString()}. Spacing out recall is what makes it stick — but reviewing early is your call.`
+              : 'Trigger Learn on a session to start tracking concepts.'
           }
           action={
-            <Link to="/app/learn" className="text-primary-300 hover:text-primary-400 text-sm">
-              Go to Learn →
-            </Link>
+            queue.total_early > 0 ? (
+              <Button onClick={() => setParams({ early: '1' })}>
+                Review {Math.min(queue.total_early, 10)} upcoming item{queue.total_early === 1 ? '' : 's'} early
+              </Button>
+            ) : (
+              <Link to="/app/learn" className="text-primary-300 hover:text-primary-400 text-sm">
+                Go to Learn →
+              </Link>
+            )
           }
         />
       ) : (
@@ -98,6 +114,7 @@ export default function Review() {
               <div className="min-w-0">
                 <p className="text-xs text-ink-300 mb-1">
                   {index + 1} of {queue.items.length} · {item.unit.unit_type.replace(/_/g, ' ')}
+                  {item.early && <span className="text-accent-400"> · early — spacing works better, but it's your call</span>}
                 </p>
                 <h2 className="font-display font-semibold text-ink-100 truncate">{item.unit.title}</h2>
               </div>

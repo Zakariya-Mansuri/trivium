@@ -56,6 +56,20 @@ def choose_format(db: DBSession, unit: KnowledgeUnit) -> str:
     return fmt
 
 
+def log_supplement(db: DBSession, units: list[KnowledgeUnit], fmt: str, signal: str) -> None:
+    """Audit-logs an additive scope-level format decision (diagram/mcq supplements)."""
+    for u in units:
+        db.add(
+            FormatDecision(
+                unit_id=u.id,
+                detected_type=u.unit_type,
+                chosen_format=fmt,
+                rule_version=settings.FORMAT_RULE_VERSION,
+                signal=signal,
+            )
+        )
+
+
 def scope_needs_diagram(db: DBSession, units: list[KnowledgeUnit]) -> bool:
     """Scope-level rule: multi-component architecture -> diagram artifact (additive)."""
     if len(units) < 3:

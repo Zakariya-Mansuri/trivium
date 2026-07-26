@@ -98,8 +98,11 @@ export default function SessionDetail() {
           ) : (
             <>
               <p className="text-xs text-ink-300 mb-5">
-                Covering {learn.units_covered} knowledge unit{learn.units_covered === 1 ? '' : 's'} — practice now,
-                graded reviews unlock after the consolidation window.
+                Covering {learn.units_covered} knowledge unit{learn.units_covered === 1 ? '' : 's'} — practice below,
+                or{' '}
+                <Link to="/app/review?early=1" className="text-accent-400 hover:text-accent-500">
+                  review for a grade right now →
+                </Link>
               </p>
               <div className="space-y-6">
                 {learn.artifacts.map((a) => (

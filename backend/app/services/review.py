@@ -47,6 +47,22 @@ def _due_states(db: DBSession, user_id: str) -> list[tuple[ReviewState, Knowledg
     return [(state, unit) for state, unit in rows]
 
 
+def _early_states(db: DBSession, user_id: str) -> list[tuple[ReviewState, KnowledgeUnit]]:
+    """Units NOT yet due (still scheduled ahead or inside the consolidation window)."""
+    now = utcnow()
+    rows = db.execute(
+        select(ReviewState, KnowledgeUnit)
+        .join(KnowledgeUnit, KnowledgeUnit.id == ReviewState.unit_id)
+        .where(
+            ReviewState.user_id == user_id,
+            (ReviewState.next_review_at > now) | (ReviewState.first_review_at > now),
+            KnowledgeUnit.deleted_at.is_(None),
+        )
+        .order_by(ReviewState.next_review_at)
+    ).all()
+    return [(state, unit) for state, unit in rows]
+
+
 def _interleave(pairs: list[tuple[ReviewState, KnowledgeUnit]], limit: int) -> list[tuple[ReviewState, KnowledgeUnit]]:
     """Round-robin across projects so a session mixes >=2 projects where available."""
     by_project: dict[str | None, list] = {}
@@ -65,11 +81,17 @@ def _interleave(pairs: list[tuple[ReviewState, KnowledgeUnit]], limit: int) -> l
 
 
 def _artifact_for_unit(db: DBSession, user: User, unit: KnowledgeUnit) -> LearningArtifact:
-    """Reuse the latest artifact covering this unit, else generate a scheduled-review one."""
+    """Reuse the latest RECALL artifact covering this unit, else generate one.
+    The scope-level mcq/diagram supplements are excluded — reviews are recall-first
+    (testing effect); recognition checks live in the Learn flow."""
     existing = db.execute(
         select(LearningArtifact)
         .join(LearningArtifactUnit, LearningArtifactUnit.artifact_id == LearningArtifact.id)
-        .where(LearningArtifactUnit.unit_id == unit.id, LearningArtifact.user_id == user.id)
+        .where(
+            LearningArtifactUnit.unit_id == unit.id,
+            LearningArtifact.user_id == user.id,
+            LearningArtifact.format.notin_(("mcq", "diagram")),
+        )
         .order_by(LearningArtifact.generated_at.desc())
         .limit(1)
     ).scalar_one_or_none()
@@ -81,13 +103,20 @@ def _artifact_for_unit(db: DBSession, user: User, unit: KnowledgeUnit) -> Learni
     )
 
 
-def build_queue(db: DBSession, user: User) -> dict:
+def build_queue(db: DBSession, user: User, include_early: bool = False) -> dict:
+    """Due items first (interleaved). With include_early=True — an explicit user
+    choice — remaining slots are filled with not-yet-due units so the user can
+    review immediately after learning if they want to."""
     due = _due_states(db, user.id)
-    selected = _interleave(due, settings.REVIEW_SESSION_SIZE)
+    early = _early_states(db, user.id)
+    selected = [(s, u, False) for s, u in _interleave(due, settings.REVIEW_SESSION_SIZE)]
+    if include_early and len(selected) < settings.REVIEW_SESSION_SIZE:
+        room = settings.REVIEW_SESSION_SIZE - len(selected)
+        selected += [(s, u, True) for s, u in _interleave(early, room)]
     items = []
-    for state, unit in selected:
+    for state, unit, is_early in selected:
         artifact = _artifact_for_unit(db, user, unit)
-        items.append({"state": state, "unit": unit, "artifact": artifact})
+        items.append({"state": state, "unit": unit, "artifact": artifact, "early": is_early})
     db.commit()
 
     next_due = db.scalar(
@@ -101,10 +130,11 @@ def build_queue(db: DBSession, user: User) -> dict:
         .order_by(ReviewState.next_review_at)
         .limit(1)
     )
-    projects = {unit.project_id for _, unit in selected}
+    projects = {unit.project_id for _, unit, _ in selected}
     return {
         "items": items,
         "total_due": len(due),
+        "total_early": len(early),
         "projects_in_session": len(projects),
         "next_due_at": next_due,
     }
@@ -154,10 +184,14 @@ def submit_review(db: DBSession, user: User, submission: ReviewSubmission) -> Re
 
     now = utcnow()
     if state.first_review_at is not None and now < state.first_review_at:
-        raise HTTPException(
-            status_code=409,
-            detail="This concept is in its consolidation window (diffuse-mode delay) and is not yet reviewable.",
-        )
+        if not submission.early:
+            raise HTTPException(
+                status_code=409,
+                detail="This concept is in its consolidation window (diffuse-mode delay) and is not yet reviewable. "
+                "Pass early=true to review it now anyway.",
+            )
+        # Explicit user choice — reviewing early is allowed, never forced (opt-in principle).
+        state.first_review_at = now
     last = db.scalar(
         select(ReviewHistory.reviewed_at)
         .where(ReviewHistory.user_id == user.id, ReviewHistory.unit_id == unit.id)

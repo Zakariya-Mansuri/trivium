@@ -53,11 +53,13 @@ class ReviewQueueItem(BaseModel):
     review_state_id: str
     mastery_status: str
     next_review_at: datetime
+    early: bool = False
 
 
 class ReviewQueueOut(BaseModel):
     items: list[ReviewQueueItem]
     total_due: int
+    total_early: int = 0
     projects_in_session: int
     next_due_at: datetime | None = None
 
@@ -67,6 +69,7 @@ class ReviewSubmission(BaseModel):
     artifact_id: str | None = None
     performance: Literal["correct", "partial", "incorrect"]
     response_text: str | None = Field(default=None, max_length=20_000)
+    early: bool = False  # explicit opt-in to review inside the consolidation window
 
 
 class ReviewResultOut(BaseModel):

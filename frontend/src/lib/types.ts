@@ -65,6 +65,7 @@ export type ArtifactFormat =
   | 'retrieval_practice'
   | 'synthesis'
   | 'diagram'
+  | 'mcq'
 
 export interface Artifact {
   id: string
@@ -80,7 +81,15 @@ export interface Artifact {
 export interface ArtifactContent {
   type: string
   cards?: { front: string; back: string }[]
-  questions?: { question: string; expected_points?: string[]; answer?: string; kind?: string }[]
+  questions?: {
+    question: string
+    expected_points?: string[]
+    answer?: string
+    kind?: string
+    choices?: string[]
+    correct_index?: number
+    explanation?: string
+  }[]
   prompts?: { prompt: string; context?: string }[]
   prompt?: string
   related_titles?: string[]
@@ -101,11 +110,13 @@ export interface ReviewQueueItem {
   review_state_id: string
   mastery_status: string
   next_review_at: string
+  early: boolean
 }
 
 export interface ReviewQueue {
   items: ReviewQueueItem[]
   total_due: number
+  total_early: number
   projects_in_session: number
   next_due_at: string | null
 }

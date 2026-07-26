@@ -21,8 +21,9 @@ def test_learn_chat_scope_generates_recall_artifacts(client, user):
         assert a["triggered_by"] == "user_action"
         assert a["scope_type"] == "chat"
         content = a["content"]
-        # Recall-first: no multiple-choice anywhere.
-        assert "choices" not in str(content)
+        # Recall-first: choices exist ONLY in the explicit MCQ supplement.
+        if a["format"] != "mcq":
+            assert "choices" not in str(content)
         if content["type"] == "qa":
             assert all(q["kind"] == "recall" for q in content["questions"])
 
@@ -113,6 +114,42 @@ def test_completing_artifact_never_updates_mastery(client, user):
     after = client.get(f"{API}/profile", headers=user["headers"]).json()
     statuses_after = {e["unit"]["id"]: e["mastery_status"] for e in after["entries"]}
     assert statuses_before == statuses_after  # unchanged — only recall submissions move mastery
+
+
+def test_learn_includes_mcq_supplement(client, user):
+    """Every Learn produces an additional MCQ quiz (recognition supplement) with
+    exactly one correct choice per question."""
+    session = import_rich_session(client, user["headers"])
+    body = client.post(
+        f"{API}/learn", json={"scope_type": "chat", "session_id": session["id"]}, headers=user["headers"]
+    ).json()
+    mcq = next((a for a in body["artifacts"] if a["format"] == "mcq"), None)
+    assert mcq is not None
+    questions = mcq["content"]["questions"]
+    assert len(questions) >= 1
+    for q in questions:
+        assert len(q["choices"]) >= 3
+        assert 0 <= q["correct_index"] < len(q["choices"])
+        assert q["explanation"]
+
+
+def test_mermaid_sanitizer_repairs_llm_output():
+    from app.services.artifacts import sanitize_mermaid
+
+    raw = """```mermaid
+flowchart TB
+  A[Uvicorn Host Binding: default 127.0.0.1] --> B[Need network access]
+  B --> H2[Tunneling service (ngrok, Cloudflare)]
+```"""
+    fixed = sanitize_mermaid(raw)
+    assert "```" not in fixed
+    assert 'A["Uvicorn Host Binding: default 127.0.0.1"]' in fixed
+    assert 'H2["Tunneling service (ngrok, Cloudflare)"]' in fixed
+    # Already-quoted labels and bare edges are left alone.
+    ok = 'flowchart TD\n  A["Fine"] --> B["Also fine"]'
+    assert sanitize_mermaid(ok) == ok
+    # Missing header gets one.
+    assert sanitize_mermaid("A --> B").startswith("flowchart TD")
 
 
 def test_llm_outage_returns_503_not_500(client, user, monkeypatch):

@@ -131,6 +131,44 @@ def test_interleaving_across_projects(client, user):
     assert queue["projects_in_session"] >= 2
 
 
+def test_early_review_opt_in(client, user):
+    """Immediate review is allowed when the user explicitly opts in — never forced,
+    never silently: default submissions still respect the consolidation window."""
+    session = import_rich_session(client, user["headers"])
+    unit_ids = _unit_ids_for_session(session["id"])
+
+    # Default queue hides fresh units; early queue surfaces them, flagged.
+    default_queue = client.get(f"{API}/reviews/queue", headers=user["headers"]).json()
+    assert not ({i["unit"]["id"] for i in default_queue["items"]} & set(unit_ids))
+    early_queue = client.get(f"{API}/reviews/queue", params={"early": "true"}, headers=user["headers"]).json()
+    early_items = {i["unit"]["id"]: i for i in early_queue["items"]}
+    assert set(unit_ids) & set(early_items)
+    assert early_queue["total_early"] >= len(unit_ids)
+    target = next(uid for uid in unit_ids if uid in early_items)
+    assert early_items[target]["early"] is True
+
+    # Default submit still 409s inside the window; early=true succeeds.
+    blocked = client.post(
+        f"{API}/reviews/submit", json={"unit_id": target, "performance": "correct"}, headers=user["headers"]
+    )
+    assert blocked.status_code == 409
+    allowed = client.post(
+        f"{API}/reviews/submit",
+        json={"unit_id": target, "performance": "correct", "early": True},
+        headers=user["headers"],
+    )
+    assert allowed.status_code == 200
+    assert allowed.json()["mastery_status"] == "learning"
+
+    # Min-gap still applies even for early reviews — no spamming.
+    spam = client.post(
+        f"{API}/reviews/submit",
+        json={"unit_id": target, "performance": "correct", "early": True},
+        headers=user["headers"],
+    )
+    assert spam.status_code == 409
+
+
 def test_review_isolation_and_unknown_unit(client, user, other_user):
     session = import_rich_session(client, user["headers"])
     unit_ids = _unit_ids_for_session(session["id"])

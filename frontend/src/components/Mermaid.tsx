@@ -24,7 +24,21 @@ function loadMermaid() {
 
 let renderCounter = 0
 
-export default function Mermaid({ chart }: { chart: string }) {
+/** Repairs common LLM mermaid mistakes (mirrors the backend sanitizer) so
+ * previously stored diagrams render too: strips code fences, quotes node
+ * labels containing special characters, ensures a flowchart header. */
+export function sanitizeMermaid(spec: string): string {
+  let s = spec.trim()
+  const fence = s.match(/^```(?:mermaid)?\s*\n([\s\S]*?)\n?```$/)
+  if (fence) s = fence[1].trim()
+  if (!/^(flowchart|graph)\b/.test(s)) s = 'flowchart TD\n' + s
+  return s.replace(/\b([A-Za-z0-9_]+)\[(?!")([^\]]*)\]/g, (_m, id: string, label: string) => {
+    return `${id}["${label.replace(/"/g, "'").trim()}"]`
+  })
+}
+
+export default function Mermaid({ chart: rawChart }: { chart: string }) {
+  const chart = sanitizeMermaid(rawChart)
   const ref = useRef<HTMLDivElement>(null)
   const [error, setError] = useState(false)
 

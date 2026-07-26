@@ -6,6 +6,7 @@ generating a low-quality artifact (PRD 6.1).
 """
 import json
 import logging
+import re
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -31,9 +32,16 @@ logger = logging.getLogger(__name__)
 ARTIFACT_SYSTEM_PROMPT = """[TASK:artifact]
 You generate a learning artifact from knowledge units extracted from the user's own coding work.
 Hard rules (learning science):
-- Default to active recall (open response), never multiple choice.
+- qa/retrieval/self-explanation formats use active recall (open response).
 - Self-explanation prompts must ask WHY an approach worked and where it would fail.
-- Diagrams are Mermaid flowcharts derived from the user's actual work, with a recall prompt.
+- Diagrams are Mermaid flowcharts derived from the user's actual work.
+- MCQ distractors must be plausible misconceptions, not jokes; exactly one correct choice.
+Mermaid syntax rules (CRITICAL — invalid syntax breaks rendering):
+- Start with: flowchart TD
+- ALWAYS double-quote node labels: A["Label text"] — never bare labels.
+- Never use parentheses, brackets, braces or quotes INSIDE a label; rephrase instead
+  (e.g. use 'ngrok / Cloudflare' not '(ngrok, Cloudflare)').
+- Only simple edges: A --> B or A -->|"label"| B. No subgraphs, no classes, no styling.
 The user message is JSON: {"format": "...", "units": [{"title","summary","unit_type"}]}.
 Respond with a single JSON object for the requested format:
 flashcard: {"type":"flashcard","cards":[{"front","back"}]}
@@ -41,7 +49,29 @@ qa: {"type":"qa","questions":[{"question","expected_points":[],"kind":"recall"}]
 self_explanation: {"type":"self_explanation","prompts":[{"prompt","context"}]}
 retrieval_practice: {"type":"retrieval_practice","questions":[{"question","answer"}]}
 synthesis: {"type":"synthesis","prompt":"...","related_titles":[]}
-diagram: {"type":"diagram","mermaid":"...","explanation":"...","recall_prompt":"..."}"""
+diagram: {"type":"diagram","mermaid":"...","explanation":"...","recall_prompt":"..."}
+mcq: {"type":"mcq","questions":[{"question","choices":["...","...","...","..."],"correct_index":0,"explanation":"..."}]}"""
+
+# Node labels containing special characters must be quoted or mermaid fails to parse
+# (e.g. `H2[Tunneling service (ngrok, Cloudflare)]` is invalid).
+_MERMAID_NODE_RE = re.compile(r'(\b[A-Za-z0-9_]+)\[(?!")([^\]]*)\]')
+
+
+def sanitize_mermaid(spec: str) -> str:
+    """Best-effort repair of common LLM mermaid mistakes so diagrams render."""
+    spec = spec.strip()
+    # Strip markdown fences the model sometimes wraps the spec in.
+    fence = re.match(r"^```(?:mermaid)?\s*\n(.*?)\n?```$", spec, re.DOTALL)
+    if fence:
+        spec = fence.group(1).strip()
+    if not spec.startswith(("flowchart", "graph")):
+        spec = "flowchart TD\n" + spec
+
+    def quote_label(m: re.Match) -> str:
+        label = m.group(2).replace('"', "'").strip()
+        return f'{m.group(1)}["{label}"]'
+
+    return _MERMAID_NODE_RE.sub(quote_label, spec)
 
 
 def generate_artifact_content(fmt: str, units: list[KnowledgeUnit]) -> dict:
@@ -60,6 +90,8 @@ def generate_artifact_content(fmt: str, units: list[KnowledgeUnit]) -> dict:
         content = json.loads(raw)
         if not isinstance(content, dict) or "type" not in content:
             raise ValueError("missing type")
+        if content.get("type") == "diagram" and isinstance(content.get("mermaid"), str):
+            content["mermaid"] = sanitize_mermaid(content["mermaid"])
         return content
     except (json.JSONDecodeError, ValueError):
         logger.warning("Artifact generation returned invalid JSON for format %s; using recall fallback", fmt)
@@ -188,6 +220,14 @@ def learn(db: DBSession, user: User, req: LearnRequest) -> tuple[list[LearningAr
         artifacts.append(
             create_artifact(db, user.id, req.scope_type, scope_ref, "diagram", units, "user_action")
         )
+
+    # Additive recognition check: an MCQ quiz over the scope's units. Recall stays
+    # the default (PRD testing-effect rule); this supplements it, never replaces it.
+    mcq_units = units[:8]
+    format_selection.log_supplement(db, mcq_units, "mcq", "scope-level recognition-check supplement")
+    artifacts.append(
+        create_artifact(db, user.id, req.scope_type, scope_ref, "mcq", mcq_units, "user_action")
+    )
 
     db.commit()
     for a in artifacts:
