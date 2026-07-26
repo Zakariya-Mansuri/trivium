@@ -115,6 +115,54 @@ def test_completing_artifact_never_updates_mastery(client, user):
     assert statuses_before == statuses_after  # unchanged — only recall submissions move mastery
 
 
+def test_llm_outage_returns_503_not_500(client, user, monkeypatch):
+    """When the provider is down/rate-limited after retries, Learn degrades to a
+    clear retryable 503 — never a 500, never silent mock content."""
+    from app.llm.base import LLMError, LLMProvider
+    from app.services import artifacts as artifacts_service
+
+    class DownProvider(LLMProvider):
+        name = "down"
+
+        def complete(self, messages, *, json_mode=False, max_tokens=2048):
+            raise LLMError("rate limited (429) after retries")
+
+    session = import_rich_session(client, user["headers"])  # extraction runs with the mock, fine
+    monkeypatch.setattr(artifacts_service, "get_llm", lambda: DownProvider())
+
+    resp = client.post(
+        f"{API}/learn", json={"scope_type": "chat", "session_id": session["id"]}, headers=user["headers"]
+    )
+    assert resp.status_code == 503
+    assert "try again" in resp.json()["detail"].lower()
+    assert resp.headers.get("retry-after") == "30"
+
+
+def test_llm_outage_marks_extraction_failed_and_retryable(client, user, monkeypatch):
+    from app.llm.base import LLMError, LLMProvider
+    from app.services import extraction as extraction_service
+
+    class DownProvider(LLMProvider):
+        name = "down"
+
+        def complete(self, messages, *, json_mode=False, max_tokens=2048):
+            raise LLMError("rate limited (429) after retries")
+
+    monkeypatch.setattr(extraction_service, "get_llm", lambda: DownProvider())
+    monkeypatch.setattr(extraction_service, "EXTRACTION_RETRY_DELAYS_SECONDS", (0.0,))
+
+    session = import_rich_session(client, user["headers"])
+    detail = client.get(f"{API}/sessions/{session['id']}", headers=user["headers"]).json()
+    assert detail["extraction_status"] == "failed"
+
+    # Manual re-extract works once the provider is back (monkeypatch undone via new provider).
+    monkeypatch.setattr(extraction_service, "get_llm", lambda: __import__("app.llm.mock", fromlist=["MockProvider"]).MockProvider())
+    retry = client.post(f"{API}/sessions/{session['id']}/extract", headers=user["headers"])
+    assert retry.status_code == 200
+    detail = client.get(f"{API}/sessions/{session['id']}", headers=user["headers"]).json()
+    assert detail["extraction_status"] == "completed"
+
+
 def test_format_decisions_are_logged(client, user):
     """Every format choice must be auditable (PRD 6.2)."""
     from sqlalchemy import select

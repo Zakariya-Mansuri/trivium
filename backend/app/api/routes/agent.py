@@ -76,8 +76,10 @@ def chat(
     try:
         reply = get_llm().complete(llm_messages)
     except LLMError:
+        # Provider down after retries — discard the uncommitted turn; the global
+        # LLMError handler turns this into a friendly 503 with Retry-After.
         db.rollback()
-        raise HTTPException(status_code=502, detail="The AI provider is unavailable right now — try again shortly")
+        raise
 
     assistant_msg = Message(
         session_id=session.id,

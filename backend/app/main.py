@@ -6,11 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from fastapi.responses import JSONResponse
+
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.rate_limit import limiter
 from app.db.base import Base
 from app.db.session import engine
+from app.llm.base import LLMError
 
 logging.basicConfig(level=logging.INFO)
 
@@ -34,6 +37,17 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.exception_handler(LLMError)
+async def llm_error_handler(request: Request, exc: LLMError):
+    # The AI provider is rate-limited/down even after retries. Surface it as a
+    # temporary condition the user can retry — never a 500.
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "The AI provider is busy or rate-limited right now — please try again in a moment."},
+        headers={"Retry-After": "30"},
+    )
 
 app.add_middleware(
     CORSMiddleware,

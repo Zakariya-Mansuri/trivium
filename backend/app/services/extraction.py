@@ -11,6 +11,7 @@ from a worker instead.
 import json
 import logging
 import re
+import time
 from datetime import timedelta
 
 from sqlalchemy import select
@@ -20,9 +21,14 @@ from app.core.config import settings
 from app.db.base import utcnow
 from app.db.session import SessionLocal
 from app.llm import get_llm
+from app.llm.base import LLMError
 from app.models import KnowledgeUnit, KnowledgeUnitRelation, Message, ReviewState, Session
 
 logger = logging.getLogger(__name__)
+
+# Extra waits between whole-extraction retries when the provider is rate-limited
+# (on top of the per-request retries inside the provider). Background thread only.
+EXTRACTION_RETRY_DELAYS_SECONDS: tuple[float, ...] = (20.0, 60.0)
 
 VALID_UNIT_TYPES = {"concept", "decision", "bug_fix", "pattern"}
 VALID_DIFFICULTIES = {"novice", "intermediate", "advanced"}
@@ -163,7 +169,27 @@ def run_extraction(session_id: str) -> None:
             db.commit()
             return
 
-        created = extract_units_from_text(db, session, build_transcript(messages))
+        transcript = build_transcript(messages)
+        created = None
+        for attempt, delay in enumerate((0.0, *EXTRACTION_RETRY_DELAYS_SECONDS)):
+            if delay:
+                logger.warning(
+                    "Extraction for session %s waiting %.0fs before retry %d (provider rate-limited)",
+                    session_id, delay, attempt,
+                )
+                time.sleep(delay)
+            try:
+                created = extract_units_from_text(db, session, transcript)
+                break
+            except LLMError as exc:
+                db.rollback()
+                logger.warning("Extraction attempt %d failed for session %s: %s", attempt + 1, session_id, exc)
+        if created is None:
+            # Provider stayed unavailable — leave it retryable via POST /sessions/{id}/extract.
+            session = db.get(Session, session_id)
+            session.extraction_status = "failed"
+            db.commit()
+            return
         session.extraction_status = "completed" if created else "insufficient_content"
         db.commit()
     except Exception:
