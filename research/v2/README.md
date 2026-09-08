@@ -6,7 +6,11 @@ inputs to the feature documents described in *Working process* below.
 **Readable summary:** [Trivium Observatory](https://claude.ai/code/artifact/a6658db2-5dec-44ac-ad9d-275ed0a8718e)
 — the whole research pass on one page, set in the design system it proposes.
 
-**The four frontend directions**, each a working page — see [`06-frontend-directions.md`](./06-frontend-directions.md) to compare:
+**▶ TEN FRONTEND DIRECTIONS — the live option set.** Switch between all ten; each renders the same
+corpus data in its own visual language: [Ten Grammars](https://claude.ai/code/artifact/5a04d47c-4f9f-431d-b953-5c4658bbc318)
+— see [`09-ten-frontend-directions.md`](./09-ten-frontend-directions.md).
+
+*Superseded — the original four, kept as the record of what was considered:*
 [A · Observatory](https://claude.ai/code/artifact/a6658db2-5dec-44ac-ad9d-275ed0a8718e) ·
 [B · Foundry](https://claude.ai/code/artifact/6cd766b3-76cb-46d2-990f-23131cd81783) ·
 [C · Codex](https://claude.ai/code/artifact/974e2ea8-6120-4ef3-b5ea-6bc5e2b7b5b7) ·
@@ -30,9 +34,10 @@ inputs to the feature documents described in *Working process* below.
 | 03 | [`03-reference-systems.md`](./03-reference-systems.md) | penecho and hermes-agent: what to take, what to refuse, and why hermes is the exact inverse of Trivium's thesis. |
 | 04 | [`04-roadmap.md`](./04-roadmap.md) | Sequenced phases, what "done" means for each, the re-pointed metric ladder, and the decisions that need answering. |
 | 05 | [`05-learner-experience.md`](./05-learner-experience.md) | The product from the learner's seat, minute by minute. Where it breaks today, the five hinge moments, the same journey in v2, and the readiness bar. |
-| 06 | [`06-frontend-directions.md`](./06-frontend-directions.md) | Four competing frontend directions, each built as a working page. Component coverage, trade-offs, how to decide, recommendation. |
+| 06 | [`06-frontend-directions.md`](./06-frontend-directions.md) | *Superseded by `09`.* The original four directions — kept as the record of what was considered and why it was rejected. |
 | 07 | [`07-component-and-motion-kit.md`](./07-component-and-motion-kit.md) | Twenty live components and motion behaviours, each borrowing a mechanic from a named exemplary site. The merge rule, the inventory, and what was deliberately left out. |
 | 08 | [`08-orientation-roadmap-examination.md`](./08-orientation-roadmap-examination.md) | The front door. Why the onboarding form is a trap, the intake as a tutor episode, the roadmap as a route through inherited sources, five kinds of exam, and mechanical definitions of polymathy and first thinking. |
+| 09 | [`09-ten-frontend-directions.md`](./09-ten-frontend-directions.md) | **Supersedes `06`.** Why the first four weren't worth attention, a fresh 2026 research pass, and ten directions that vary by *interaction thesis* rather than palette. |
 
 **Read in order if new to this.** 00 is the argument; 01 is the largest single deliverable; 04 is what
 to do on Monday.
@@ -51,6 +56,9 @@ to do on Monday.
 - [cloudstudio.es](https://cloudstudio.es/) — ticker as live status readout, expandable identity
   cards, numbered indices, accordions, live counters. **Refuse:** the mascot and the "digital workers
   with salaries" conceit, and its density of simultaneous motion (`07` §5).
+- **2026 research pass** (award circuit, trend surveys, MDN scroll-driven animations, Obsidian canvas
+  community, museum digitisation practice, spaced-repetition landscape) — all logged with what to
+  refuse in [`09-ten-frontend-directions.md`](./09-ten-frontend-directions.md) §6.
 - `PRD-v1.md`, `full-technical-document-v1.md`, and the shipped `backend/` + `frontend/`.
 
 ---
@@ -102,6 +110,6 @@ Copy [`TEMPLATE-feature-document.md`](./TEMPLATE-feature-document.md) into `feat
 |---|---|
 | 1. Study | ✅ Research pass + learner-experience pass |
 | 2. Source | ✅ penecho, hermes-agent, the frontend-research repo. Ongoing. |
-| 3. Propose | 🔶 Four directions (`06`) + the component/motion kit (`07`). Feature documents next, driven by `04-roadmap.md`. |
-| 4. Approve | ⬜ Blocked on: pick a frontend direction (`06`), and the five decisions at the end of `04-roadmap.md` |
+| 3. Propose | 🔶 Ten directions (`09`, supersedes `06`), the component/motion kit (`07`), the front door (`08`). Feature documents next. |
+| 4. Approve | ⬜ Blocked on: pick a frontend direction from the ten (`09`), and the five decisions at the end of `04-roadmap.md` |
 | 5. Implement | ⬜ |
