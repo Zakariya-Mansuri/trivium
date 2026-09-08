@@ -12,6 +12,9 @@ inputs to the feature documents described in *Working process* below.
 [C · Codex](https://claude.ai/code/artifact/974e2ea8-6120-4ef3-b5ea-6bc5e2b7b5b7) ·
 [D · Atelier](https://claude.ai/code/artifact/3221e11c-6b64-4c85-90d1-3cf45e239544)
 
+**The component & motion kit** — twenty live, interactive parts:
+[Trivium Instrument Kit](https://claude.ai/code/artifact/5bf623dd-c75f-42db-9eca-7a2fd38ebe29)
+
 ---
 
 ## Documents
@@ -25,6 +28,7 @@ inputs to the feature documents described in *Working process* below.
 | 04 | [`04-roadmap.md`](./04-roadmap.md) | Sequenced phases, what "done" means for each, the re-pointed metric ladder, and the decisions that need answering. |
 | 05 | [`05-learner-experience.md`](./05-learner-experience.md) | The product from the learner's seat, minute by minute. Where it breaks today, the five hinge moments, the same journey in v2, and the readiness bar. |
 | 06 | [`06-frontend-directions.md`](./06-frontend-directions.md) | Four competing frontend directions, each built as a working page. Component coverage, trade-offs, how to decide, recommendation. |
+| 07 | [`07-component-and-motion-kit.md`](./07-component-and-motion-kit.md) | Twenty live components and motion behaviours, each borrowing a mechanic from a named exemplary site. The merge rule, the inventory, and what was deliberately left out. |
 
 **Read in order if new to this.** 00 is the argument; 01 is the largest single deliverable; 04 is what
 to do on Monday.
@@ -40,6 +44,9 @@ to do on Monday.
 - [penecho](https://github.com/penecho/penecho) — spatial thinking, provisional AI drafts, ink.
 - [nousresearch/hermes-agent](https://github.com/nousresearch/hermes-agent) — self-improving agent;
   studied as the inverse case.
+- [cloudstudio.es](https://cloudstudio.es/) — ticker as live status readout, expandable identity
+  cards, numbered indices, accordions, live counters. **Refuse:** the mascot and the "digital workers
+  with salaries" conceit, and its density of simultaneous motion (`07` §5).
 - `PRD-v1.md`, `full-technical-document-v1.md`, and the shipped `backend/` + `frontend/`.
 
 ---
@@ -91,6 +98,6 @@ Copy [`TEMPLATE-feature-document.md`](./TEMPLATE-feature-document.md) into `feat
 |---|---|
 | 1. Study | ✅ Research pass + learner-experience pass |
 | 2. Source | ✅ penecho, hermes-agent, the frontend-research repo. Ongoing. |
-| 3. Propose | 🔶 Four frontend directions proposed (`06`). Feature documents next, driven by `04-roadmap.md`. |
+| 3. Propose | 🔶 Four directions (`06`) + the component/motion kit (`07`). Feature documents next, driven by `04-roadmap.md`. |
 | 4. Approve | ⬜ Blocked on: pick a frontend direction (`06`), and the five decisions at the end of `04-roadmap.md` |
 | 5. Implement | ⬜ |
