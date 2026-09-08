@@ -4,7 +4,13 @@ Research and proposals for the v2 direction. **Nothing here is approved or imple
 inputs to the feature documents described in *Working process* below.
 
 **Readable summary:** [Trivium Observatory](https://claude.ai/code/artifact/a6658db2-5dec-44ac-ad9d-275ed0a8718e)
-— the whole pass on one page, set in the design system it proposes (private link).
+— the whole research pass on one page, set in the design system it proposes.
+
+**The four frontend directions**, each a working page — see [`06-frontend-directions.md`](./06-frontend-directions.md) to compare:
+[A · Observatory](https://claude.ai/code/artifact/a6658db2-5dec-44ac-ad9d-275ed0a8718e) ·
+[B · Foundry](https://claude.ai/code/artifact/6cd766b3-76cb-46d2-990f-23131cd81783) ·
+[C · Codex](https://claude.ai/code/artifact/974e2ea8-6120-4ef3-b5ea-6bc5e2b7b5b7) ·
+[D · Atelier](https://claude.ai/code/artifact/3221e11c-6b64-4c85-90d1-3cf45e239544)
 
 ---
 
@@ -17,6 +23,8 @@ inputs to the feature documents described in *Working process* below.
 | 02 | [`02-architecture.md`](./02-architecture.md) | The five missing components — provenance, Tutor, Inheritance, Canvas, Contribution — with data models against the shipped backend. |
 | 03 | [`03-reference-systems.md`](./03-reference-systems.md) | penecho and hermes-agent: what to take, what to refuse, and why hermes is the exact inverse of Trivium's thesis. |
 | 04 | [`04-roadmap.md`](./04-roadmap.md) | Sequenced phases, what "done" means for each, the re-pointed metric ladder, and the decisions that need answering. |
+| 05 | [`05-learner-experience.md`](./05-learner-experience.md) | The product from the learner's seat, minute by minute. Where it breaks today, the five hinge moments, the same journey in v2, and the readiness bar. |
+| 06 | [`06-frontend-directions.md`](./06-frontend-directions.md) | Four competing frontend directions, each built as a working page. Component coverage, trade-offs, how to decide, recommendation. |
 
 **Read in order if new to this.** 00 is the argument; 01 is the largest single deliverable; 04 is what
 to do on Monday.
@@ -81,8 +89,8 @@ Copy [`TEMPLATE-feature-document.md`](./TEMPLATE-feature-document.md) into `feat
 
 | Stage | Where we are |
 |---|---|
-| 1. Study | ✅ This pass |
+| 1. Study | ✅ Research pass + learner-experience pass |
 | 2. Source | ✅ penecho, hermes-agent, the frontend-research repo. Ongoing. |
-| 3. Propose | ⬜ Next — feature documents, driven by the phases in `04-roadmap.md` |
-| 4. Approve | ⬜ Blocked on the five decisions at the end of `04-roadmap.md` |
+| 3. Propose | 🔶 Four frontend directions proposed (`06`). Feature documents next, driven by `04-roadmap.md`. |
+| 4. Approve | ⬜ Blocked on: pick a frontend direction (`06`), and the five decisions at the end of `04-roadmap.md` |
 | 5. Implement | ⬜ |
