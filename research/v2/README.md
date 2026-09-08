@@ -15,6 +15,9 @@ inputs to the feature documents described in *Working process* below.
 **The component & motion kit** — twenty live, interactive parts:
 [Trivium Instrument Kit](https://claude.ai/code/artifact/5bf623dd-c75f-42db-9eca-7a2fd38ebe29)
 
+**The front door** — click through the orientation, the roadmap and the Descent:
+[Trivium Orientation](https://claude.ai/code/artifact/a38bae95-d4ed-4591-9df6-eea5593db9a9)
+
 ---
 
 ## Documents
@@ -29,6 +32,7 @@ inputs to the feature documents described in *Working process* below.
 | 05 | [`05-learner-experience.md`](./05-learner-experience.md) | The product from the learner's seat, minute by minute. Where it breaks today, the five hinge moments, the same journey in v2, and the readiness bar. |
 | 06 | [`06-frontend-directions.md`](./06-frontend-directions.md) | Four competing frontend directions, each built as a working page. Component coverage, trade-offs, how to decide, recommendation. |
 | 07 | [`07-component-and-motion-kit.md`](./07-component-and-motion-kit.md) | Twenty live components and motion behaviours, each borrowing a mechanic from a named exemplary site. The merge rule, the inventory, and what was deliberately left out. |
+| 08 | [`08-orientation-roadmap-examination.md`](./08-orientation-roadmap-examination.md) | The front door. Why the onboarding form is a trap, the intake as a tutor episode, the roadmap as a route through inherited sources, five kinds of exam, and mechanical definitions of polymathy and first thinking. |
 
 **Read in order if new to this.** 00 is the argument; 01 is the largest single deliverable; 04 is what
 to do on Monday.
