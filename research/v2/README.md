@@ -3,6 +3,9 @@
 Research and proposals for the v2 direction. **Nothing here is approved or implemented.** These are
 inputs to the feature documents described in *Working process* below.
 
+**Readable summary:** [Trivium Observatory](https://claude.ai/code/artifact/a6658db2-5dec-44ac-ad9d-275ed0a8718e)
+— the whole pass on one page, set in the design system it proposes (private link).
+
 ---
 
 ## Documents
