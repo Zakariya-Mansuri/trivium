@@ -6,7 +6,11 @@ inputs to the feature documents described in *Working process* below.
 **Readable summary:** [Trivium Observatory](https://claude.ai/code/artifact/a6658db2-5dec-44ac-ad9d-275ed0a8718e)
 — the whole research pass on one page, set in the design system it proposes.
 
-**▶ TEN FRONTEND DIRECTIONS — the live option set.** Switch between all ten; each renders the same
+**▶ DIRECTION CHOSEN — Teletype × Atlas.** Both diagrams and the route toggle:
+[Teletype Atlas](https://claude.ai/artifact/SAPguJkqkyEaTdYd8QQGnW) — see
+[`10-teletype-atlas.md`](./10-teletype-atlas.md).
+
+*The option set it was chosen from:* Switch between all ten; each renders the same
 corpus data in its own visual language: [Ten Grammars](https://claude.ai/code/artifact/5a04d47c-4f9f-431d-b953-5c4658bbc318)
 — see [`09-ten-frontend-directions.md`](./09-ten-frontend-directions.md).
 
@@ -38,6 +42,7 @@ corpus data in its own visual language: [Ten Grammars](https://claude.ai/code/ar
 | 07 | [`07-component-and-motion-kit.md`](./07-component-and-motion-kit.md) | Twenty live components and motion behaviours, each borrowing a mechanic from a named exemplary site. The merge rule, the inventory, and what was deliberately left out. |
 | 08 | [`08-orientation-roadmap-examination.md`](./08-orientation-roadmap-examination.md) | The front door. Why the onboarding form is a trap, the intake as a tutor episode, the roadmap as a route through inherited sources, five kinds of exam, and mechanical definitions of polymathy and first thinking. |
 | 09 | [`09-ten-frontend-directions.md`](./09-ten-frontend-directions.md) | **Supersedes `06`.** Why the first four weren't worth attention, a fresh 2026 research pass, and ten directions that vary by *interaction thesis* rather than palette. |
+| 10 | [`10-teletype-atlas.md`](./10-teletype-atlas.md) | **The chosen direction.** Teletype as the grammar you act in, Atlas as the surface you orient by, Observatory as the philosophy diagram. The computed route optimisation, the seam rule, and the two open items. |
 
 **Read in order if new to this.** 00 is the argument; 01 is the largest single deliverable; 04 is what
 to do on Monday.
@@ -111,5 +116,5 @@ Copy [`TEMPLATE-feature-document.md`](./TEMPLATE-feature-document.md) into `feat
 | 1. Study | ✅ Research pass + learner-experience pass |
 | 2. Source | ✅ penecho, hermes-agent, the frontend-research repo. Ongoing. |
 | 3. Propose | 🔶 Ten directions (`09`, supersedes `06`), the component/motion kit (`07`), the front door (`08`). Feature documents next. |
-| 4. Approve | ⬜ Blocked on: pick a frontend direction from the ten (`09`), and the five decisions at the end of `04-roadmap.md` |
+| 4. Approve | 🔶 **Frontend direction chosen — Teletype × Atlas (`10`).** Still open: the five decisions at the end of `04-roadmap.md`, and the mono-at-length exception in `10` §6. |
 | 5. Implement | ⬜ |
