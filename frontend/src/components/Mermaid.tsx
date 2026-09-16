@@ -2,18 +2,32 @@ import { useEffect, useRef, useState } from 'react'
 
 let mermaidReady: Promise<typeof import('mermaid')> | null = null
 
+/** Reads a design token from the stylesheet so Mermaid can never drift from
+ *  index.css. The shipped version hard-coded five hex values and a font name
+ *  in JavaScript, which would silently diverge on the first palette change. */
+function token(name: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return v || fallback
+}
+
 function loadMermaid() {
   if (!mermaidReady) {
     mermaidReady = import('mermaid').then((m) => {
       m.default.initialize({
         startOnLoad: false,
-        theme: 'dark',
+        theme: 'base',
         themeVariables: {
-          primaryColor: '#1f2940',
-          primaryTextColor: '#e3e8f2',
-          primaryBorderColor: '#6172f3',
-          lineColor: '#8a97b1',
-          fontFamily: 'Inter, sans-serif',
+          background: token('--color-paper', '#f4f2ec'),
+          primaryColor: token('--color-surface', '#e9e5de'),
+          primaryTextColor: token('--color-ink', '#14120f'),
+          primaryBorderColor: token('--color-edge', '#85807a'),
+          secondaryColor: token('--color-surface', '#e9e5de'),
+          tertiaryColor: token('--color-paper', '#f4f2ec'),
+          lineColor: token('--color-ink-mid', '#4e4a42'),
+          textColor: token('--color-ink-mid', '#4e4a42'),
+          fontFamily: token('--font-mono', 'ui-monospace, monospace'),
+          fontSize: '13px',
         },
       })
       return m
@@ -58,7 +72,9 @@ export default function Mermaid({ chart: rawChart }: { chart: string }) {
   }, [chart])
 
   if (error) {
-    return <pre className="text-xs text-ink-300 bg-ink-800 rounded-lg p-4 overflow-x-auto">{chart}</pre>
+    return <pre className="text-xs text-ink-lo bg-surface border border-rule p-4 overflow-x-auto">{chart}</pre>
   }
-  return <div ref={ref} className="mermaid-container flex justify-center py-2" />
+  /* .mermaid-container reserves a min-height in index.css: the shipped version
+     injected SVG into a zero-height div, which was a guaranteed layout shift. */
+  return <div ref={ref} className="mermaid-container py-2" />
 }

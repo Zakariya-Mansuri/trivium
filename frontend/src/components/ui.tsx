@@ -1,5 +1,19 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react'
 
+/* ═══════════════════════════════════════════════════════════════════════
+   UI kit — Teletype
+   research/v2/features/01-design-foundation.md
+
+   Rules enforced here:
+   · SC 2.4.11 — every control carries a 2px ribbon :focus-visible ring.
+   · SC 2.5.8  — every control is at least 44px tall.
+   · Structural boundaries use --color-edge (3.12–3.50:1), never --color-rule.
+   · Primary and danger are distinguished by WEIGHT, not hue: primary is a
+     ribbon fill, danger is a ribbon outline. One accent, two actions.
+   · No shadow anywhere except .prov-generated, which means "not yours yet".
+   · No border radius. Enforced globally in index.css.
+   ═══════════════════════════════════════════════════════════════════════ */
+
 export function Button({
   variant = 'primary',
   className = '',
@@ -7,14 +21,19 @@ export function Button({
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger' }) {
   const styles = {
     primary:
-      'bg-primary-600 hover:bg-primary-500 text-white shadow-lg shadow-primary-600/20 disabled:bg-ink-700 disabled:text-ink-300',
-    secondary: 'bg-ink-800 hover:bg-ink-700 text-ink-100 border border-ink-600',
-    ghost: 'bg-transparent hover:bg-ink-800 text-ink-200',
-    danger: 'bg-bad-500/10 hover:bg-bad-500/20 text-bad-500 border border-bad-500/40',
+      'bg-ribbon text-paper border border-ribbon hover:bg-ribbon-deep hover:border-ribbon-deep ' +
+      'disabled:bg-surface disabled:text-ink-lo disabled:border-edge',
+    secondary: 'bg-transparent text-ink border border-edge hover:bg-ink hover:text-paper hover:border-ink',
+    ghost: 'bg-transparent text-ink-mid border border-transparent hover:text-ink hover:border-edge',
+    danger: 'bg-transparent text-ribbon border border-ribbon hover:bg-ribbon hover:text-paper',
   }[variant]
   return (
     <button
-      className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed ${styles} ${className}`}
+      className={
+        `inline-flex items-center justify-center gap-2 min-h-11 px-4 py-2.5 text-[13px] ` +
+        `font-medium uppercase tracking-[0.1em] transition-colors motion-micro ` +
+        `disabled:cursor-not-allowed active:scale-[0.98] ${styles} ${className}`
+      }
       {...props}
     />
   )
@@ -23,7 +42,10 @@ export function Button({
 export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
-      className={`w-full rounded-lg bg-ink-800 border border-ink-600 px-3 py-2 text-sm text-ink-100 placeholder-ink-300 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 ${className}`}
+      className={
+        `w-full min-h-11 bg-surface border border-edge px-3 py-2.5 text-sm text-ink ` +
+        `placeholder-ink-lo outline-none focus:border-ribbon ${className}`
+      }
       {...props}
     />
   )
@@ -32,7 +54,10 @@ export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInpu
 export function TextArea({ className = '', ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
-      className={`w-full rounded-lg bg-ink-800 border border-ink-600 px-3 py-2 text-sm text-ink-100 placeholder-ink-300 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 ${className}`}
+      className={
+        `w-full bg-surface border border-edge px-3 py-2.5 text-sm text-ink leading-relaxed ` +
+        `placeholder-ink-lo outline-none focus:border-ribbon ${className}`
+      }
       {...props}
     />
   )
@@ -42,28 +67,40 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
   return <div className={`card p-5 ${className}`}>{children}</div>
 }
 
+/* Badges are square, not pills — a record, not a chat app. The colour is on
+   the border and the text; nothing is filled, so nothing competes with the
+   one ribbon fill on the primary action. */
 const badgeColors: Record<string, string> = {
-  concept: 'bg-primary-600/15 text-primary-300 border-primary-600/40',
-  decision: 'bg-accent-500/15 text-accent-400 border-accent-500/40',
-  bug_fix: 'bg-bad-500/15 text-bad-500 border-bad-500/40',
-  pattern: 'bg-good-500/15 text-good-500 border-good-500/40',
-  new: 'bg-ink-700 text-ink-200 border-ink-600',
-  learning: 'bg-primary-600/15 text-primary-300 border-primary-600/40',
-  consolidated: 'bg-good-500/15 text-good-500 border-good-500/40',
-  stale: 'bg-warn-500/15 text-warn-500 border-warn-500/40',
-  native: 'bg-good-500/15 text-good-500 border-good-500/40',
-  wrapped: 'bg-warn-500/15 text-warn-500 border-warn-500/40',
-  completed: 'bg-good-500/15 text-good-500 border-good-500/40',
-  pending: 'bg-ink-700 text-ink-200 border-ink-600',
-  running: 'bg-primary-600/15 text-primary-300 border-primary-600/40',
-  failed: 'bg-bad-500/15 text-bad-500 border-bad-500/40',
-  insufficient_content: 'bg-warn-500/15 text-warn-500 border-warn-500/40',
+  concept: 'text-ink-mid border-edge',
+  decision: 'text-ribbon border-ribbon',
+  bug_fix: 'text-ribbon border-ribbon',
+  pattern: 'text-recalled border-recalled',
+  new: 'text-ink-lo border-rule',
+  learning: 'text-ink-mid border-edge',
+  consolidated: 'text-recalled border-recalled',
+  stale: 'text-partial border-partial',
+  native: 'text-recalled border-recalled',
+  wrapped: 'text-partial border-partial',
+  completed: 'text-recalled border-recalled',
+  pending: 'text-ink-lo border-rule',
+  running: 'text-ink-mid border-edge',
+  failed: 'text-ribbon border-ribbon',
+  insufficient_content: 'text-partial border-partial',
+  /* provenance */
+  inherited: 'text-ink-mid border-edge',
+  generated: 'text-ink-lo border-edge border-dashed',
+  authored: 'text-ribbon border-ribbon',
 }
 
 export function Badge({ label, className = '' }: { label: string; className?: string }) {
-  const color = badgeColors[label] ?? 'bg-ink-700 text-ink-200 border-ink-600'
+  const color = badgeColors[label] ?? 'text-ink-lo border-rule'
   return (
-    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${color} ${className}`}>
+    <span
+      className={
+        `inline-block border px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] ` +
+        `whitespace-nowrap ${color} ${className}`
+      }
+    >
       {label.replace(/_/g, ' ')}
     </span>
   )
@@ -71,18 +108,23 @@ export function Badge({ label, className = '' }: { label: string; className?: st
 
 export function Spinner({ label }: { label?: string }) {
   return (
-    <div className="flex items-center gap-3 text-ink-300 text-sm py-8 justify-center">
-      <span className="h-5 w-5 animate-spin rounded-full border-2 border-ink-600 border-t-primary-400" />
+    <div className="flex items-center gap-3 text-ink-lo text-sm py-8 justify-center" role="status">
+      <span
+        aria-hidden="true"
+        className="h-4 w-4 animate-spin border-2 border-rule border-t-ribbon"
+      />
       {label ?? 'Loading…'}
     </div>
   )
 }
 
+/* Empty states carry as much design effort as populated views, and they offer
+   the next action rather than apologising. (Retool; research/v2/07 §13.) */
 export function EmptyState({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   return (
-    <div className="card p-10 text-center">
-      <p className="text-ink-100 font-medium">{title}</p>
-      {hint && <p className="text-ink-300 text-sm mt-2 max-w-md mx-auto">{hint}</p>}
+    <div className="border border-dashed border-edge p-10 text-center">
+      <p className="text-ink font-medium">{title}</p>
+      {hint && <p className="text-ink-lo text-sm mt-2 max-w-md mx-auto leading-relaxed">{hint}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
   )
@@ -90,10 +132,10 @@ export function EmptyState({ title, hint, action }: { title: string; hint?: stri
 
 export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+    <div className="flex flex-wrap items-end justify-between gap-4 mb-6 pb-4 border-b border-rule">
       <div>
-        <h1 className="font-display text-2xl font-semibold text-ink-100">{title}</h1>
-        {subtitle && <p className="text-ink-300 text-sm mt-1 max-w-2xl">{subtitle}</p>}
+        <h1 className="font-display text-xl font-semibold text-ink lowercase tracking-tight">{title}</h1>
+        {subtitle && <p className="text-ink-lo text-sm mt-1.5 max-w-2xl leading-relaxed">{subtitle}</p>}
       </div>
       {action}
     </div>
@@ -103,7 +145,10 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
 export function ErrorNote({ message }: { message: string | null }) {
   if (!message) return null
   return (
-    <div className="rounded-lg border border-bad-500/40 bg-bad-500/10 px-4 py-2.5 text-sm text-bad-500">
+    <div
+      role="alert"
+      className="border border-ribbon border-l-2 bg-surface px-4 py-2.5 text-sm text-ribbon"
+    >
       {message}
     </div>
   )
