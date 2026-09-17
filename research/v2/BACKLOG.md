@@ -36,24 +36,40 @@ Nothing else changed — no pages added or removed, no wording changed, backend 
 
 ### Backend
 
-**1. Track who wrote what** — small · id `B1`
+**1. Track who wrote what — extend what's already there** — small · id `B1`
 
-Every piece of content gets one permanent label: it came from a book or paper someone else wrote
-(*inherited*), the AI produced it (*generated*), or the user wrote it themselves (*authored*).
+**Correction to an earlier version of this document:** this is not a from-scratch job. Two pieces of
+it already exist in the backend:
 
-Why it matters: the user's skill profile should only count things they actually wrote. Right now
-there's no way to tell the three apart. Most of the other work below depends on this existing.
+- `messages.authored_by` already records whether each message was written by the person or by the AI,
+  and `ai_assist_ratio` in `metrics.py` is already computed from it.
+- `sessions.source_fidelity` already records whether a session was captured natively or wrapped, and
+  that value already flows through to knowledge units and the profile.
 
-Also: AI-written text only becomes "authored" if the user accepts *and* edits it. Accepting it
-untouched leaves it marked as the AI's.
+So the idea is built and proven at the message level. The remaining work is to:
 
-**2. Explain why an action was blocked** — very small · id `B2`
+- add the missing third state — content that came from a book, paper or repository someone else
+  wrote — since today the only options are "person" and "AI";
+- carry the label onto knowledge units and learning artifacts, which don't have it yet;
+- make it permanent once set;
+- add the rule that AI-written text only counts as the person's work if they accept **and** edit it.
 
-The app stops you reviewing something too soon after you learned it, on purpose — that delay is what
-makes the review work. But it currently just returns an error code with no explanation, so the
-screen can't tell you why.
+Why it matters: the skill profile should only count what the person actually wrote. Most of the work
+below depends on this.
 
-Add the reason to the response. A block the user can't understand is indistinguishable from a bug.
+**2. Show the blocked-action reason on screen** — very small · id `B2`
+
+**Correction to an earlier version of this document:** I previously wrote that the backend returns a
+bare error with no explanation. That was wrong. Both review gates already return a written reason —
+*"This concept is in its consolidation window (diffuse-mode delay) and is not yet reviewable"* and
+*"This concept was reviewed within the last N hours — spacing matters"* — and the frontend API client
+already pulls that text out of the response.
+
+The early-review gate also already lets the person override it deliberately (`early=true`), which is
+the "never forced" principle actually implemented rather than just stated.
+
+So the backend work here is done. What remains is a frontend check: confirm every screen actually
+displays that message where the person can see it, rather than swallowing it into a generic error.
 
 **3. Send review reminders** — small · id `B3`
 
@@ -162,7 +178,7 @@ interactive forgetting curve, and the drag-to-rebuild diagram that replaces the 
 ```
   1.  Merge the design work                              very small
   2.  Track who wrote what        ──▶ show it on screen  small
-  3.  Explain blocked actions     ──▶ show it on screen  very small
+  3.  Check blocked-action messages reach the screen     very small
   4.  Send review reminders                              small
   5.  Ask the learner their goal  ──▶ sign-up screens    small
   6.  Replace the scheduler                              medium
