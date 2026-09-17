@@ -1,118 +1,193 @@
-# Trivium v2 — Backlog
+# Trivium — What to build next
 
-Everything the research produced, as tasks, with honest dependencies. **Living document** — update
-status here rather than in the research docs, which are a record of thinking and should not be edited
-to track work.
+A plain list of the work. Update status here, not in the research documents.
 
-Legend: ✅ done · 🟢 ready (nothing blocks it) · 🟡 blocked on a decision · 🔴 blocked on another task
-
-> **Note on "ready":** almost everything below is technically unblocked. The real question is not
-> *what can we do* but *what order*. §5 answers that.
+Status: ✅ done · 🟢 can start today · 🟡 waiting on a decision from you · 🔴 waiting on another task
 
 ---
 
-## 1. Done
+## Already done
 
-| | Task | Where |
+**The app's look and its accessibility problems.**
+Branch: `claude/impl-phase0-design-foundation`. Not merged into `main` yet.
+
+What a person would notice:
+
+- The app was dark blue-grey with purple buttons. It's now light — cream background, black text, one
+  red used for buttons and links.
+- It used two fonts. It now uses one typewriter font throughout.
+- Rounded corners everywhere are now square corners everywhere.
+- The lines around cards and text boxes were almost invisible. They're now visible.
+- Pressing Tab showed no outline around the button you'd landed on. It now shows a red outline.
+- On a phone the sidebar covered most of the screen and couldn't be closed. Phones now get a row of
+  buttons along the bottom instead.
+- The menu had nine items in one flat list. They're now grouped into four sections. Same pages, just
+  organised.
+- Menu icons were text characters (◈ ⌨ ☰) which look different on every computer. They're now proper
+  drawn icons.
+- People who turn on "reduce motion" in their system settings were ignored. They're now respected.
+- Diagrams used to appear late and shove the page down. Space is now reserved for them.
+
+Nothing else changed — no pages added or removed, no wording changed, backend untouched.
+
+---
+
+## Can start today
+
+### Backend
+
+**1. Track who wrote what** — small · id `B1`
+
+Every piece of content gets one permanent label: it came from a book or paper someone else wrote
+(*inherited*), the AI produced it (*generated*), or the user wrote it themselves (*authored*).
+
+Why it matters: the user's skill profile should only count things they actually wrote. Right now
+there's no way to tell the three apart. Most of the other work below depends on this existing.
+
+Also: AI-written text only becomes "authored" if the user accepts *and* edits it. Accepting it
+untouched leaves it marked as the AI's.
+
+**2. Explain why an action was blocked** — very small · id `B2`
+
+The app stops you reviewing something too soon after you learned it, on purpose — that delay is what
+makes the review work. But it currently just returns an error code with no explanation, so the
+screen can't tell you why.
+
+Add the reason to the response. A block the user can't understand is indistinguishable from a bug.
+
+**3. Send review reminders** — small · id `B3`
+
+There is no email, no notification, nothing. The scheduler decides when you should review something,
+and then nobody is ever told. So reviews don't happen.
+
+This is a few days of work and it's the single cheapest large improvement available.
+
+**4. Replace the review scheduling algorithm** — medium · id `B4`
+
+It currently uses SM-2, the algorithm from Anki's early days. FSRS is the current standard and
+predicts forgetting more accurately.
+
+Needs care: existing users have review schedules stored, so this needs a migration plan.
+
+**5. Let people export everything** — medium · id `B5`
+
+Plain files: their sources, notes, review history, profile. Plus an import that puts it all back.
+
+If the product's argument is "build on what others left you", it can't be a place where a person's
+own work dies if the company does.
+
+**6. Ask the learner what they're trying to do** — small · id `B6`
+
+Four questions when they sign up: what do you want to be able to do, who has already done it, what
+would you want to leave behind, and then the system reflects their goal back as a list of specific
+skills they'd need — which they can correct.
+
+Best done after task 1, so the answers get labelled correctly from the start.
+
+**7. Build the tutor properly** — large · id `B7`
+
+Right now it's a chat window. A tutor should ask what you already think before it explains, make you
+write your answer before it shows you the answer, and then tell you exactly where your answer and
+the source's answer differed.
+
+**8. Let people bring in books, papers and repositories** — extra large · id `B8`
+
+Today the app can only read your own AI chat logs. That means a new user signs up and finds an empty
+app, and has to go use another tool for a few hours before Trivium can do anything.
+
+This is the biggest piece of work here and it fixes the worst problem the product has.
+
+### Frontend
+
+**9. Merge the finished design work into `main`** — very small · id `F1`
+
+**10. Update the 14 pages to use the new colour names** — medium · id `F2`
+
+The pages currently use the old names (`ink-950`, `primary-600`). They still display correctly
+because those names now point at the new colours, but the names are misleading. One page per pull
+request; safe to do gradually.
+
+**11. Stop loading fonts from Google** — very small · id `F3`
+
+Host the font file ourselves. Removes an outside dependency that delays first paint.
+
+**12. Show the blocked-action reason on screen** — very small · id `F4`
+
+Pairs with task 2.
+
+**13. Add the keyboard command bar (⌘K)** — medium · id `F5`
+
+Type a command instead of clicking. Already built and working in the component demo — needs porting
+into the real app.
+
+**14. Port the rest of the components from the demo** — medium · id `F6`
+
+The numbered transcript, the expand/collapse sections, the properly designed empty screen, the
+interactive forgetting curve, and the drag-to-rebuild diagram that replaces the static one.
+
+---
+
+## Waiting on another task
+
+| Task | Waiting for | id |
 |---|---|---|
-| ✅ | **Phase 0 — Teletype design foundation + four WCAG fixes** | `claude/impl-phase0-design-foundation` · `features/01-design-foundation.md` |
-
-**Not yet merged to `main`.** That is task zero.
-
----
-
-## 2. Backend
-
-| # | Task | Size | Status | Source | Notes |
-|---|---|---|---|---|---|
-| **B1** | **Provenance triple** — `Provenance` enum, immutable column on `messages`, `knowledge_units`, `learning_artifacts`; guards in `profile.py` + `review.py`; `services/provenance.py`; `GET /provenance/ledger`; tests | **S** | 🟢 | `02` §1 | **The moat.** Smallest change with the largest downstream unlock. Only `authored` may write to `review_state` / `knowledge_profile_entries`. `generated → authored` requires accept **plus** a non-trivial edit. |
-| **B2** | **Gate reasons in API responses** — every 409 carries a machine-readable `reason` + a human sentence | **XS** | 🟢 | `05` §6 readiness bar | Stated invariant: *a gate whose reason is invisible is indistinguishable from a bug.* Today the review gate returns 409 with nothing the UI can show. Pairs with **F4**. |
-| **B3** | **Delivery channel** — one review-due nudge | **S** | 🟢 | `05` §7 | *"A spaced-repetition engine with no way to tell anyone a review is due has a broken engine regardless of how good the scheduler is."* Days, not weeks. Cheapest large win available. |
-| **B4** | **FSRS migration** — replace SM-2 in `services/review.py` | **M** | 🟢 | `09` §2.5, `10` §6 | Flagged three times. Needs its own feature doc **and a migration story for existing `review_state` rows**. Must land **before B10 (the Survey)**: the Survey renders mastery as topography, so a weak scheduler becomes a visibly wrong map. |
-| **B5** | **Export / durability** — plain-file export + round-trip import of corpus, profile, history, contributions | **M** | 🟢 | `02` §7 | A product built on inheritance cannot be where work dies with the vendor. Also a costly-signal trust feature. |
-| **B6** | **Orientation Lite** — `orientations` table + decomposition; moves 1–4 only | **S** | 🟢 | `08` §9 | Recommended into Phase 1. One model call, two tables. Creates the learner's first two `authored` objects in three minutes. Best read: land **after B1** so provenance is right at creation rather than backfilled. |
-| **B7** | **Tutor state machine** — `tutor_episodes`, `tutor_moves`, the declared move set, `commit`-before-`reveal` gate (409) | **L** | 🟢 | `02` §2 | Genuinely independent of Inheritance, but most valuable over inherited material. Every move logged the way `format_decisions` already is. |
-| **B8** | **Inheritance layer** — `sources`, `source_edges`, `benches`, `annotations`; PDF/EPUB/paper/repo ingest | **XL** | 🟢 | `02` §3, `05` §7 | **The fix for the product's worst experience defect.** Cold start, perceived-value trough, empty first session and the 12-hour gap are one problem wearing four hats, and this is the only thing that solves any of them. Works with **zero** other users. |
-| **B9** | **FTS5 + hierarchical summarisation** — cross-session and cross-corpus recall | **M** | 🔴 B8 | `03` §1.2b | Also the missing substrate for the PRD's "all-time" Learn span, which has no named mechanism today. |
-| **B10** | **The Survey** — route computation over the mastery terrain | **L** | 🔴 B4, B8 | `10` §3 | Effort as the path integral of `(1 − mastery)`. The piece with real algorithmic content, and what turns the roadmap from a list into a computed claim. |
-| **B11** | **Contribution layer** — `contributions`, `contribution_sources`, the publish gate | **L** | 🔴 B1, B8 | `02` §5 | The only gate that blocks by design. Published contributions re-enter as `Source` **with lineage attached** — this is the loop closing. |
-| **B12** | **Domain packs** — extract the implicit code pack; add mathematics + text | **M** | 🔴 B8, 🟡 D4 | `00` §4 | One pack proves nothing; three proves the abstraction. |
-| **B13** | **Canvas** — tiled surface, ink, drafts as movable `generated` objects | **XL** | 🔴 B1 | `02` §4 | *"Editing your own ink never triggers a model request."* |
-| **B14** | **Skills as agentskills.io artifacts** | **S** | 🔴 B11 | `03` §1.2a | `services/skills.py` and `skill_reports` already exist — this is one serialiser on top. Makes a contribution *executable* inheritance. |
+| Show the three content labels visually in the app | task 1 | `F7` |
+| Search across everything the learner has ever read | task 8 | `B9` |
+| The knowledge map, and working out the cheapest route to a goal | tasks 4 and 8 | `B10` / `F11` |
+| Letting people publish something they've made | tasks 1 and 8 | `B11` |
+| Supporting subjects other than coding | task 8 | `B12` |
+| The drawing canvas | task 1 | `B13` |
+| Turning a learner's know-how into a file other people's AI tools can use | task 11 above | `B14` |
+| The sign-up flow screens | task 6 | `F9` |
+| The reading screen for books and papers | task 8 | `F10` |
+| The tutor screen | task 7 | `F12` |
+| The view showing everything a learner has already covered | task 8 | `F13` |
 
 ---
 
-## 3. Frontend
+## Waiting on you
 
-| # | Task | Size | Status | Source | Notes |
-|---|---|---|---|---|---|
-| **F1** | **Merge Phase 0 to `main`** | XS | 🟢 | — | Task zero. |
-| **F2** | **Migrate pages off legacy token aliases** | **M** | 🟢 | `features/01` §9 | 14 pages still use `ink-950`/`primary-600`. They render correctly — the alias map handles it — but the names now lie. Parallelisable, one page per PR. Delete the alias block when done. |
-| **F3** | **Self-host font subset** | **XS** | 🟢 | `features/01` §5 | Explicitly scoped out of Phase 0. Removes a third-party LCP dependency. |
-| **F4** | **Show gate reasons in the UI** | **XS** | 🟢 | `05` §6 | Pairs with **B2**. |
-| **F5** | **Command palette (⌘K)** | **M** | 🟢 | `07` §3 | In Teletype this is the **primary input**, not a shortcut. Built and working in the Instrument Kit — port it. |
-| **F6** | **Component kit carry-over** — line-numbered transcript, accordion, crafted empty state, forgetting curve, rebuild-the-diagram | **M** | 🟢 | `07` | All built and working in the Instrument Kit. Rebuild-the-diagram replaces the static Mermaid render. |
-| **F7** | **Provenance material grammar on real objects** | **S** | 🔴 B1 | `01` §5 | CSS classes already shipped in Phase 0 (`.prov-inherited`, `.prov-generated`, `.prov-authored`). Just needs real data. |
-| **F8** | **Landing page rebuild** | **M** | 🟡 D1, D2 | `01` §8 | Still the centred-hero/4-card skeleton and the shame hook. Includes the **Observatory diagram** as the philosophy figure. |
-| **F9** | **Orientation UI** — the six moves, typed into one column | **M** | 🔴 B6 | `08` §2 | Move 2's answer opens the Survey for the first time, so the map arrives as a reward rather than a navigation chore. |
-| **F10** | **Inherit district + reading surface** | **L** | 🔴 B8, 🟡 D5 | `10` §5 | Where the mono-at-length question actually bites. |
-| **F11** | **The Survey (Atlas)** | **L** | 🔴 B10 | `10` §3 | The one Atlas surface. Contours, route, *unsurveyed*. |
-| **F12** | **Tutor surface** — replaces `AgentChat.tsx` | **L** | 🔴 B7 | `02` §2 | |
-| **F13** | **The Lineage** — territory already crossed | **L** | 🔴 B8 | `01` §7 | Atlas grammar, different question from the Survey. **Do not merge the two.** |
+| Decision | What it holds up | My suggestion |
+|---|---|---|
+| The tagline | The landing page | *"Everything you know, someone left for you. Learn it well enough to leave something."* |
+| Whether to use the word "pious" publicly | Landing page wording | Keep the idea, drop the word in public. It's a positioning call, not a design one. |
+| How much to ship in the first release | The order of everything | Tasks 1–3 alone are a real release, about three weeks. Adding task 8 makes the bigger idea true. |
+| Whether coding stays the main subject | Tasks 8 and 12 | I've assumed yes, with two non-coding subjects added later as proof it generalises. |
+| Whether long reading should use a normal font instead of the typewriter font | The reading screen | Yes, for book and paper text only. Everything the user types stays typewriter. |
 
 ---
 
-## 4. Decisions blocking work — yours
-
-| # | Decision | Blocks | Recommendation |
-|---|---|---|---|
-| **D1** | **The tagline** | F8 | *"Everything you know, someone left for you. Learn it well enough to leave something."* |
-| **D2** | **"Pious"** — internal philosophy only, or public surface? | F8, copy | Keep the *obligation* in public copy; keep the word in internal docs. Positioning call, not design. |
-| **D3** | **First-release scope** | sequencing | Phases 0+1 alone are real and shippable (~3 weeks). Phases 0–2 are the smallest set that makes the v2 philosophy true. |
-| **D4** | **Does coding remain the wedge?** | B12, B8 ingest priorities | Assumed yes, with two non-code packs as proof of generality. |
-| **D5** | **Mono at length** — proportional face for inherited source text only? | F10 | **Ship the exception.** Inherit is where reading volume is highest, and readability failures are trust failures. |
-
----
-
-## 5. Recommended order
-
-Almost everything is unblocked, so sequence is the real decision. This order maximises unlock per unit
-of risk.
+## Suggested order
 
 ```
-  0 ── F1   merge Phase 0                                    XS
-       │
-  1 ── B1   provenance triple  ──────────┐                    S   ← the moat
-       │                                  └─▶ F7  material grammar
-  2 ── B2 + F4   gate reasons                                 XS  ← stated invariant, trivial
-       │
-  3 ── B3   delivery channel                                  S   ← fixes a broken engine
-       │
-  4 ── B6   orientation lite ────────────▶ F9  orientation UI S   ← fixes the first 90 seconds
-       │
-  5 ── B4   FSRS  ───────────────────────┐                    M   ← must precede B10
-       │                                  │
-  6 ── B8   INHERITANCE LAYER ────────────┼─▶ B9  FTS5        XL  ← the phase that changes
-       │                                  │   F10 Inherit UI      what the product is
-       │                                  └─▶ B10 ─▶ F11 Survey
-       │                                      B11 ─▶ contribution
-  ···  in parallel throughout: F2 token migration · F3 fonts · F5 palette · F6 kit
+  1.  Merge the design work                              very small
+  2.  Track who wrote what        ──▶ show it on screen  small
+  3.  Explain blocked actions     ──▶ show it on screen  very small
+  4.  Send review reminders                              small
+  5.  Ask the learner their goal  ──▶ sign-up screens    small
+  6.  Replace the scheduler                              medium
+  7.  Let people bring in books   ──▶ reading screen     extra large
+                                  ──▶ the map, publishing
+
+  Alongside all of it: update colour names, host fonts,
+  command bar, port the demo components.
 ```
 
-**The one fork worth arguing about:** after step 4, the choice is **Inheritance (B8)** or **Tutor
-(B7)**. `05` §7 argues for Inheritance and I think it is right — the Tutor is a better experience for
-someone who already has material, and Inheritance is the reason anyone has material at all.
+**Two things worth getting right:**
 
-**The one sequencing trap:** do not build the Survey (B10/F11) before FSRS (B4). The Survey renders
-`review_state` as terrain, so an inaccurate scheduler produces a map that is *visibly* wrong — a much
-more expensive failure than a number being slightly off in a table.
+Do the scheduler (6) before the map (7). The map shows what you know as hills and valleys — things
+you know well are high ground. If the scheduler is inaccurate, the map is *visibly* wrong, which is
+much worse than a slightly wrong number in a table.
+
+After the basics, choose "let people bring in books" over "build the tutor". The tutor is better for
+someone who already has material to work with. Bringing in material is how they get any.
 
 ---
 
-## 6. Next two feature documents
+## Before writing code
 
-Per the working process, these need writing and approving before implementation:
+Two short specification documents need writing and your approval first:
 
-1. **`features/02-provenance-triple.md`** — B1. The moat; everything visual depends on it.
-2. **`features/03-fsrs.md`** — B4. Needs a migration story for existing `review_state` rows, and it
-   is the one task here that changes behaviour for anyone already using the product.
+1. Tracking who wrote what (task 1)
+2. The scheduler replacement (task 4) — this one changes behaviour for anyone already using the app,
+   so it needs a migration plan
