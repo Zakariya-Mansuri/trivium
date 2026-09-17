@@ -26,6 +26,10 @@ corpus data in its own visual language: [Ten Grammars](https://claude.ai/code/ar
 **The front door** — click through the orientation, the roadmap and the Descent:
 [Trivium Orientation](https://claude.ai/code/artifact/a38bae95-d4ed-4591-9df6-eea5593db9a9)
 
+**▶ [`BACKLOG.md`](./BACKLOG.md) — what to do next.** Every task from this research with honest
+dependencies, the decisions that block work, and a recommended order. Living document; update status
+there rather than in the research docs below.
+
 ---
 
 ## Documents
@@ -117,4 +121,4 @@ Copy [`TEMPLATE-feature-document.md`](./TEMPLATE-feature-document.md) into `feat
 | 2. Source | ✅ penecho, hermes-agent, the frontend-research repo. Ongoing. |
 | 3. Propose | 🔶 Ten directions (`09`, supersedes `06`), the component/motion kit (`07`), the front door (`08`). Feature documents next. |
 | 4. Approve | 🔶 **Frontend direction chosen — Teletype × Atlas (`10`).** Still open: the five decisions at the end of `04-roadmap.md`, and the mono-at-length exception in `10` §6. |
-| 5. Implement | ⬜ |
+| 5. Implement | 🔶 Phase 0 done (`features/01`, branch `claude/impl-phase0-design-foundation`). Next up tracked in [`BACKLOG.md`](./BACKLOG.md). |
